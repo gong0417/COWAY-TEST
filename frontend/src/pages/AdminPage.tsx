@@ -1,19 +1,8 @@
-import {
-  addDoc,
-  collection,
-  deleteDoc,
-  doc,
-  onSnapshot,
-  serverTimestamp,
-  updateDoc,
-  type Unsubscribe,
-} from "firebase/firestore";
-import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { useCallback, useEffect, useState } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { SearchResultsPanel } from "@/components/SearchResultsPanel";
 import { useReliabilityDataContext } from "@/context/ReliabilityDataContext";
-import { COLLECTIONS, getDb, getFirebaseStorage } from "@/lib/firebase";
+import { apiUrl } from "@/lib/api";
 import { batchCreateInspectionItems } from "@/lib/inspectionBatchWrite";
 import { parseInspectionWorkbook } from "@/lib/parseInspectionSpreadsheet";
 import type { FileUploadRecord, InspectionItem } from "@/types/models";
@@ -21,7 +10,7 @@ import type { FileUploadRecord, InspectionItem } from "@/types/models";
 const GRADE_OPTIONS = ["", "S", "A", "B+", "B", "Warning"] as const;
 
 export function AdminPage() {
-  const { inspectionItems, firebaseReady } = useReliabilityDataContext();
+  const { inspectionItems, apiReady, refetch } = useReliabilityDataContext();
   const [uploads, setUploads] = useState<FileUploadRecord[]>([]);
   const [drag, setDrag] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -40,67 +29,59 @@ export function AdminPage() {
   });
   const [editingId, setEditingId] = useState<string | null>(null);
 
-  useEffect(() => {
-    const db = getDb();
-    if (!db) return;
-    let unsub: Unsubscribe | undefined;
+  const loadUploads = useCallback(async () => {
     try {
-      unsub = onSnapshot(collection(db, COLLECTIONS.fileUploads), (snap) => {
-        setUploads(
-          snap.docs.map((d) => {
-            const x = d.data();
-            return {
-              id: d.id,
-              fileName: String(x.fileName ?? ""),
-              url: String(x.url ?? ""),
-              createdAt: Number(x.createdAt ?? 0),
-            };
-          }),
-        );
-      });
+      const r = await fetch(apiUrl("/api/file-uploads"));
+      if (!r.ok) return;
+      const data = (await r.json()) as FileUploadRecord[];
+      setUploads(data);
     } catch {
       /* ignore */
     }
-    return () => unsub?.();
-  }, [firebaseReady]);
-
-  const onFiles = useCallback(async (files: FileList | null) => {
-    if (!files?.length) return;
-    const storage = getFirebaseStorage();
-    const db = getDb();
-    if (!storage || !db) {
-      setUploadMsg("Firebase Storage / Firestore가 설정되지 않았습니다.");
-      return;
-    }
-    setUploading(true);
-    setUploadMsg(null);
-    try {
-      for (const file of Array.from(files)) {
-        const safe = file.name.replace(/[^\w.\-가-힣]+/g, "_");
-        const path = `uploads/${Date.now()}_${safe}`;
-        const sRef = ref(storage, path);
-        await uploadBytes(sRef, file);
-        const url = await getDownloadURL(sRef);
-        await addDoc(collection(db, COLLECTIONS.fileUploads), {
-          fileName: file.name,
-          url,
-          storagePath: path,
-          createdAt: Date.now(),
-          createdAtServer: serverTimestamp(),
-        });
-      }
-      setUploadMsg("업로드가 완료되었습니다.");
-    } catch (e) {
-      setUploadMsg(e instanceof Error ? e.message : String(e));
-    } finally {
-      setUploading(false);
-    }
   }, []);
 
+  useEffect(() => {
+    if (!apiReady) return;
+    void loadUploads();
+  }, [apiReady, loadUploads]);
+
+  const onFiles = useCallback(
+    async (files: FileList | null) => {
+      if (!files?.length) return;
+      if (!apiReady) {
+        setUploadMsg("백엔드 API가 준비된 뒤 업로드하세요.");
+        return;
+      }
+      setUploading(true);
+      setUploadMsg(null);
+      try {
+        const fd = new FormData();
+        for (const file of Array.from(files)) {
+          fd.append("files", file);
+        }
+        const res = await fetch(apiUrl("/api/file-uploads"), {
+          method: "POST",
+          body: fd,
+        });
+        if (!res.ok) {
+          const t = await res.text();
+          throw new Error(t || `업로드 실패 (${res.status})`);
+        }
+        setUploadMsg("업로드가 완료되었습니다.");
+        await loadUploads();
+        await refetch();
+      } catch (e) {
+        setUploadMsg(e instanceof Error ? e.message : String(e));
+      } finally {
+        setUploading(false);
+      }
+    },
+    [apiReady, loadUploads, refetch],
+  );
+
   async function saveMaster() {
-    const db = getDb();
-    if (!db || !form.name?.trim()) {
-      setUploadMsg("이름을 입력하고 Firebase를 설정하세요.");
+    if (!apiReady || !form.name?.trim()) {
+      setUploadMsg("이름을 입력하고 백엔드 서버를 실행했는지 확인하세요.");
       return;
     }
     const payload = {
@@ -115,13 +96,22 @@ export function AdminPage() {
       updatedAt: Date.now(),
     };
     try {
-      if (editingId) {
-        await updateDoc(doc(db, COLLECTIONS.inspectionItems, editingId), payload);
-        setUploadMsg("수정되었습니다.");
-      } else {
-        await addDoc(collection(db, COLLECTIONS.inspectionItems), payload);
-        setUploadMsg("추가되었습니다.");
+      const res = editingId
+        ? await fetch(apiUrl(`/api/inspection-items/${editingId}`), {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          })
+        : await fetch(apiUrl("/api/inspection-items"), {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+      if (!res.ok) {
+        const t = await res.text();
+        throw new Error(t || res.statusText);
       }
+      setUploadMsg(editingId ? "수정되었습니다." : "추가되었습니다.");
       setForm({
         name: "",
         partNumber: "",
@@ -133,18 +123,25 @@ export function AdminPage() {
         status: "ok",
       });
       setEditingId(null);
+      await refetch();
     } catch (e) {
       setUploadMsg(e instanceof Error ? e.message : String(e));
     }
   }
 
   async function removeMaster(id: string) {
-    const db = getDb();
-    if (!db) return;
+    if (!apiReady) return;
     if (!confirm("삭제할까요?")) return;
     try {
-      await deleteDoc(doc(db, COLLECTIONS.inspectionItems, id));
+      const res = await fetch(apiUrl(`/api/inspection-items/${id}`), {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        const t = await res.text();
+        throw new Error(t || res.statusText);
+      }
       setUploadMsg("삭제되었습니다.");
+      await refetch();
     } catch (e) {
       setUploadMsg(e instanceof Error ? e.message : String(e));
     }
@@ -167,8 +164,8 @@ export function AdminPage() {
   async function onSpreadsheetFiles(files: FileList | null) {
     const file = files?.[0];
     if (!file) return;
-    if (!firebaseReady) {
-      setUploadMsg("Firebase를 설정한 뒤 일괄 등록하세요.");
+    if (!apiReady) {
+      setUploadMsg("백엔드 서버를 실행한 뒤 일괄 등록하세요.");
       return;
     }
     setBatchBusy(true);
@@ -182,6 +179,7 @@ export function AdminPage() {
       }
       const { written } = await batchCreateInspectionItems(rows);
       setUploadMsg(`일괄 등록 완료: ${written}건 (${file.name})`);
+      await refetch();
     } catch (e) {
       setUploadMsg(e instanceof Error ? e.message : String(e));
     } finally {
@@ -235,7 +233,7 @@ export function AdminPage() {
                 파일 / 대량 업로드
               </h2>
               <span className="rounded bg-secondary-container px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-on-secondary-container">
-                Storage
+                NAS
               </span>
             </div>
             <div
@@ -271,7 +269,7 @@ export function AdminPage() {
                   드래그하거나 클릭하여 업로드
                 </p>
                 <p className="text-xs leading-relaxed text-on-surface-variant">
-                  Firebase Storage · 인증 및 규칙 필요
+                  Express · 로컬 data/uploads
                   <br />
                   {uploading ? "업로드 중…" : "여러 파일 선택 가능"}
                 </p>
@@ -286,17 +284,16 @@ export function AdminPage() {
             </div>
             <div className="rounded-xl border border-dashed border-primary/35 bg-primary-fixed/15 p-4">
               <p className="text-sm font-bold text-primary">
-                엑셀 / CSV → Firestore 배치 저장
+                엑셀 / CSV → API 일괄 저장
               </p>
               <p className="mt-1 text-xs leading-relaxed text-on-surface-variant">
                 첫 번째 시트 · 1행 헤더(
                 <span className="font-mono">부품명, 품번, 분류, 등급, SOC 정밀도, 절연 저항, 비고, 상태</span>
-                ) · 최대 약 수백~수천 행(
-                <span className="font-mono">writeBatch</span> 분할)
+                ) · 서버에 JSON 오버레이로 누적
               </p>
               <button
                 type="button"
-                disabled={batchBusy || !firebaseReady}
+                disabled={batchBusy || !apiReady}
                 onClick={() => document.getElementById("admin-sheet")?.click()}
                 className="mt-3 inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-bold text-on-primary disabled:opacity-40"
               >
@@ -547,7 +544,7 @@ export function AdminPage() {
               <button
                 type="button"
                 onClick={() => void saveMaster()}
-                disabled={!firebaseReady}
+                disabled={!apiReady}
                 className="rounded-lg bg-primary px-4 py-2 text-sm font-bold text-on-primary hover:opacity-90 disabled:opacity-40"
               >
                 {editingId ? "수정 저장" : "추가"}
@@ -584,10 +581,10 @@ export function AdminPage() {
             </span>
             <div className="relative z-10">
               <h3 className="mb-1 text-xs font-bold uppercase tracking-widest text-blue-300">
-                Firebase
+                NAS API
               </h3>
               <p className="text-2xl font-bold">
-                {firebaseReady ? "연결됨" : "미설정"}
+                {apiReady ? "연결됨" : "미설정"}
               </p>
             </div>
           </div>

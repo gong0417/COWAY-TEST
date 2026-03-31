@@ -1,8 +1,8 @@
-export type FirestoreId = string;
+export type DbRecordId = string;
 
 /** 점검 항목 / 부품 마스터 */
 export interface InspectionItem {
-  id: FirestoreId;
+  id: DbRecordId;
   name: string;
   partNumber?: string;
   category?: string;
@@ -25,14 +25,14 @@ export interface InspectionItem {
 
 /** 실패 사례 */
 export interface FailureCase {
-  id: FirestoreId;
+  id: DbRecordId;
   title: string;
   partName?: string;
   severity?: string;
   occurredAt?: string;
   summary?: string;
   rootCause?: string;
-  /** SSM / ssm.csv 확장 필드 (Firebase 동일 스키마 권장) */
+  /** SSM / ssm.csv 확장 필드 */
   ssmDefining?: string;
   ssmTrouble?: string;
   ssmStress?: string;
@@ -48,7 +48,7 @@ export interface FailureCase {
 
 /** 시험 표준 (ISO/IEC 등) */
 export interface ReliabilityStandard {
-  id: FirestoreId;
+  id: DbRecordId;
   code?: string;
   title: string;
   body?: string;
@@ -76,7 +76,7 @@ export interface UnifiedSearchHit {
 }
 
 export interface FileUploadRecord {
-  id: FirestoreId;
+  id: DbRecordId;
   fileName: string;
   url: string;
   createdAt: number;
