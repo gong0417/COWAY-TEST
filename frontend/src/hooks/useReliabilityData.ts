@@ -1,58 +1,34 @@
-import { useCallback, useEffect, useState } from "react";
-import { apiUrl } from "@/lib/api";
-import { loadAllCsv } from "@/lib/loadDbCsv";
+import { useMemo } from "react";
+import type { CollectionsResponse } from "@/lib/api";
+import { useFetchJson } from "@/hooks/useFetchJson";
 import type {
   FailureCase,
   InspectionItem,
   ReliabilityStandard,
 } from "@/types/models";
 
+/**
+ * App-wide dataset from `GET /api/collections` (`fetch` → Express).
+ * Backend fills JSON from PostgreSQL (SELECT) when DB env is set, else from CSV files.
+ */
 export function useReliabilityData() {
-  const [inspectionItems, setInspectionItems] = useState<InspectionItem[]>([]);
-  const [failureCases, setFailureCases] = useState<FailureCase[]>([]);
-  const [reliabilityStandards, setReliabilityStandards] = useState<
-    ReliabilityStandard[]
-  >([]);
+  const { data, loading, error, refetch } =
+    useFetchJson<CollectionsResponse>("/api/collections");
 
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [apiReady, setApiReady] = useState(false);
+  const inspectionItems: InspectionItem[] = useMemo(
+    () => data?.inspectionItems ?? [],
+    [data],
+  );
+  const failureCases: FailureCase[] = useMemo(
+    () => data?.failureCases ?? [],
+    [data],
+  );
+  const reliabilityStandards: ReliabilityStandard[] = useMemo(
+    () => data?.reliabilityStandards ?? [],
+    [data],
+  );
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const csv = await loadAllCsv();
-      setFailureCases(csv.failureCases);
-      setReliabilityStandards(csv.reliabilityStandards);
-
-      try {
-        const r = await fetch(apiUrl("/api/inspection-items"));
-        if (r.ok) {
-          const merged = (await r.json()) as InspectionItem[];
-          setInspectionItems(merged);
-        } else {
-          setInspectionItems(csv.inspectionItems);
-        }
-      } catch {
-        setInspectionItems(csv.inspectionItems);
-      }
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
-
-  useEffect(() => {
-    void fetch(apiUrl("/api/health"))
-      .then((r) => setApiReady(r.ok))
-      .catch(() => setApiReady(false));
-  }, []);
+  const apiReady = Boolean(data && !error);
 
   return {
     inspectionItems,
@@ -61,6 +37,6 @@ export function useReliabilityData() {
     loading,
     error,
     apiReady,
-    refetch: load,
+    refetch,
   };
 }

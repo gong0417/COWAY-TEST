@@ -10,7 +10,8 @@ import type { FileUploadRecord, InspectionItem } from "@/types/models";
 const GRADE_OPTIONS = ["", "S", "A", "B+", "B", "Warning"] as const;
 
 export function AdminPage() {
-  const { inspectionItems, apiReady, refetch } = useReliabilityDataContext();
+  const { inspectionItems, apiReady, refetch, loading, error } =
+    useReliabilityDataContext();
   const [uploads, setUploads] = useState<FileUploadRecord[]>([]);
   const [drag, setDrag] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -32,11 +33,16 @@ export function AdminPage() {
   const loadUploads = useCallback(async () => {
     try {
       const r = await fetch(apiUrl("/api/file-uploads"));
-      if (!r.ok) return;
+      if (!r.ok) {
+        setUploadMsg(`업로드 목록을 불러오지 못했습니다 (${r.status})`);
+        return;
+      }
       const data = (await r.json()) as FileUploadRecord[];
       setUploads(data);
-    } catch {
-      /* ignore */
+    } catch (e) {
+      setUploadMsg(
+        e instanceof Error ? e.message : "업로드 목록 요청에 실패했습니다.",
+      );
     }
   }, []);
 
@@ -191,6 +197,24 @@ export function AdminPage() {
     <MainLayout>
       <SearchResultsPanel />
       <div className="mx-auto max-w-7xl space-y-8">
+        {loading ? (
+          <p className="text-sm text-on-surface-variant">컬렉션 불러오는 중…</p>
+        ) : null}
+        {error ? (
+          <div
+            className="flex flex-wrap items-center gap-3 rounded-lg border border-error/30 bg-error-container/20 px-4 py-3 text-sm text-error"
+            role="alert"
+          >
+            <span>데이터를 불러오지 못했습니다: {error}</span>
+            <button
+              type="button"
+              onClick={() => void refetch()}
+              className="rounded-md bg-error px-3 py-1 text-xs font-bold text-on-error hover:opacity-90"
+            >
+              다시 시도
+            </button>
+          </div>
+        ) : null}
         <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
           <div className="space-y-1">
             <h1 className="text-3xl font-bold tracking-tight text-primary">
@@ -584,7 +608,13 @@ export function AdminPage() {
                 NAS API
               </h3>
               <p className="text-2xl font-bold">
-                {apiReady ? "연결됨" : "미설정"}
+                {loading
+                  ? "…"
+                  : error
+                    ? "오류"
+                    : apiReady
+                      ? "연결됨"
+                      : "미설정"}
               </p>
             </div>
           </div>

@@ -1,0 +1,14 @@
+node_modules
+**/node_modules
+.git
+.gitignore
+frontend/dist
+.env
+.env.*
+!.env.example
+*.log
+.DS_Store
+.cursor
+**/agent-transcripts
+coverage
+.vscode

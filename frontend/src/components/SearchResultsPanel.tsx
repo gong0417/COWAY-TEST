@@ -13,7 +13,7 @@ const catLabel: Record<SearchCategory, string> = {
 
 export function SearchResultsPanel() {
   const { query } = useSearchQuery();
-  const { inspectionItems, failureCases, reliabilityStandards } =
+  const { inspectionItems, failureCases, reliabilityStandards, loading, error } =
     useReliabilityDataContext();
   const data = useMemo(
     () => ({ failureCases, reliabilityStandards, inspectionItems }),
@@ -38,6 +38,29 @@ export function SearchResultsPanel() {
   }, [results, query]);
 
   if (!query.trim()) return null;
+
+  if (loading) {
+    return (
+      <div
+        data-print-hide="true"
+        className="mb-8 rounded-xl border border-slate-100 bg-surface-container-lowest p-4 shadow-sm"
+      >
+        <p className="text-sm text-on-surface-variant">데이터를 불러오는 중입니다…</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div
+        data-print-hide="true"
+        className="mb-8 rounded-xl border border-error/30 bg-error-container/15 p-4 shadow-sm"
+        role="alert"
+      >
+        <p className="text-sm text-error">검색할 데이터를 불러오지 못했습니다: {error}</p>
+      </div>
+    );
+  }
 
   return (
     <div

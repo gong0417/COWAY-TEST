@@ -7,7 +7,7 @@ import { downloadStandardPdf, printStandardView } from "@/lib/standardExport";
 import type { ReliabilityStandard } from "@/types/models";
 
 export function ReliabilityPage() {
-  const { reliabilityStandards, loading } = useReliabilityDataContext();
+  const { reliabilityStandards, loading, error } = useReliabilityDataContext();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [aiOpen, setAiOpen] = useState(false);
 
@@ -24,6 +24,9 @@ export function ReliabilityPage() {
   return (
     <MainLayout>
       <SearchResultsPanel />
+      {error ? (
+        <p className="mb-4 text-sm text-error">데이터: {error}</p>
+      ) : null}
       <div className="mx-auto max-w-7xl">
         <div className="mb-8">
           <h1 className="mb-2 text-2xl font-bold tracking-tight text-primary">

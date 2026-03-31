@@ -9,7 +9,7 @@ import type { InspectionItem } from "@/types/models";
 
 export function InspectionPage() {
   const { query } = useSearchQuery();
-  const { inspectionItems, failureCases, reliabilityStandards, loading } =
+  const { inspectionItems, failureCases, reliabilityStandards, loading, error } =
     useReliabilityDataContext();
   const searchHits = useUnifiedFuseSearch(
     query,
@@ -31,6 +31,9 @@ export function InspectionPage() {
   return (
     <MainLayout>
       <SearchResultsPanel />
+      {error ? (
+        <p className="mb-4 text-sm text-error">데이터: {error}</p>
+      ) : null}
       <div className="mx-auto max-w-7xl">
         <div className="mb-8 flex flex-col justify-between gap-4 md:flex-row md:items-end">
           <div>

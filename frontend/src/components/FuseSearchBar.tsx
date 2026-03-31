@@ -14,7 +14,7 @@ const kindLabel: Record<FuseSearchKind, string> = {
 /** stitch `code.html` TopNavBar 검색창 톤: surface-container-low, primary-container 포커스 링 */
 export function FuseSearchBar() {
   const { query, setQuery } = useSearchQuery();
-  const { failureCases, reliabilityStandards, inspectionItems } =
+  const { failureCases, reliabilityStandards, inspectionItems, loading, error } =
     useReliabilityDataContext();
   const data = useMemo(
     () => ({ failureCases, reliabilityStandards, inspectionItems }),
@@ -58,6 +58,15 @@ export function FuseSearchBar() {
         aria-expanded={open}
         aria-controls="fuse-search-suggestions"
       />
+      {error ? (
+        <p className="mt-1 text-xs text-error" role="status">
+          데이터를 불러오지 못해 검색이 제한됩니다.
+        </p>
+      ) : loading ? (
+        <p className="mt-1 text-xs text-on-surface-variant" role="status">
+          데이터 불러오는 중…
+        </p>
+      ) : null}
       {open && query.trim() && displayResults.length > 0 ? (
         <div
           id="fuse-search-suggestions"

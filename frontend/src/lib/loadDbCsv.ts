@@ -1,3 +1,7 @@
+/**
+ * Client-side CSV parsing (Papa). The main UI loads via `GET /api/collections` only;
+ * this module remains for tooling or future offline paths.
+ */
 import Papa from "papaparse";
 import type {
   FailureCase,
@@ -153,6 +157,7 @@ export function mapStandardRows(rows: Record<string, string>[]): ReliabilityStan
   return out;
 }
 
+/** Fallback when `GET /api/collections` is unavailable: CSV via `/api/db/:name` or static `public/DB`. */
 export async function loadAllCsv(): Promise<LoadedCsv> {
   const fetchText = async (name: string) => {
     const apiFirst = await fetch(apiUrl(`/api/db/${name}`));

@@ -16,13 +16,19 @@
     "preview": "npm run preview -w frontend",
     "lint": "npm run lint -w frontend",
     "git-remote": "powershell -ExecutionPolicy Bypass -File ./scripts/git-setup-remote.ps1",
-    "repair:caniuse": "node scripts/repair-caniuse.mjs"
+    "repair:caniuse": "node scripts/repair-caniuse.mjs",
+    "import-pg": "node scripts/import-csv-to-pg.mjs",
+    "import:data": "node scripts/importCsv.js",
+    "test:db": "node scripts/test-db.mjs"
   },
   "dependencies": {
     "core-js": "^3.38.0"
   },
   "devDependencies": {
-    "concurrently": "^9.1.2"
+    "concurrently": "^9.1.2",
+    "csv-parser": "^3.2.0",
+    "papaparse": "^5.5.2",
+    "pg": "^8.14.1"
   },
   "overrides": {
     "core-js": "^3.38.0",
