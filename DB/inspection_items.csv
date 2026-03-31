@@ -1,0 +1,4 @@
+﻿checkId,category,inspectionItem,internalStandard,method,revisionDate
+CHK-GEN-001,외관,사출물 버(Burr),0.1mm 이하 관리,10배 확대경 검사,2024-01-15
+CHK-ELEC-042,성능,절연 저항,DC 500V에서 100MΩ 이상,절연 저항계 측정,2024-03-20
+CHK-MECH-015,치수,고정 홀 이격 거리,도면 치수 기준 ±0.05mm,3차원 측정기,2023-11-30

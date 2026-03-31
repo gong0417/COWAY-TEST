@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+
+<html class="light" lang="ko"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>부품 신뢰성 시험 표준 - 핵심부품 신뢰성 통합 검증 시스템</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        body { font-family: 'Pretendard', 'Inter', sans-serif; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            vertical-align: middle;
+        }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(12px);
+        }
+        /* Custom scrollbar for technical feel */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #e0e3e5; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #c4c6cf; }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              colors: {
+                "surface-container-highest": "#e0e3e5",
+                "outline": "#74777f",
+                "tertiary-fixed-dim": "#ffb3ac",
+                "primary-container": "#003763",
+                "on-error-container": "#93000a",
+                "tertiary": "#4b0004",
+                "surface-variant": "#e0e3e5",
+                "on-primary-fixed": "#001c37",
+                "on-error": "#ffffff",
+                "primary": "#00213f",
+                "secondary-fixed": "#d8e3fa",
+                "surface-container-low": "#f1f4f6",
+                "on-tertiary-fixed-variant": "#930010",
+                "primary-fixed-dim": "#a0c9ff",
+                "secondary-fixed-dim": "#bcc7dd",
+                "background": "#f7fafc",
+                "on-surface": "#181c1e",
+                "on-tertiary-fixed": "#410003",
+                "error": "#ba1a1a",
+                "on-primary-container": "#72a2dc",
+                "surface-bright": "#f7fafc",
+                "secondary-container": "#d5e0f7",
+                "on-tertiary-container": "#ff7369",
+                "secondary": "#545f72",
+                "surface-container-high": "#e5e9eb",
+                "error-container": "#ffdad6",
+                "on-secondary-fixed": "#111c2c",
+                "on-secondary-fixed-variant": "#3c475a",
+                "inverse-surface": "#2d3133",
+                "outline-variant": "#c4c6cf",
+                "on-tertiary": "#ffffff",
+                "surface-dim": "#d7dadc",
+                "on-secondary-container": "#586377",
+                "surface-tint": "#2d6197",
+                "inverse-primary": "#a0c9ff",
+                "surface-container": "#ebeef0",
+                "on-background": "#181c1e",
+                "on-primary": "#ffffff",
+                "surface": "#f7fafc",
+                "surface-container-lowest": "#ffffff",
+                "tertiary-container": "#73000a",
+                "primary-fixed": "#d2e4ff",
+                "on-primary-fixed-variant": "#07497d",
+                "on-surface-variant": "#43474e",
+                "inverse-on-surface": "#eef1f3",
+                "on-secondary": "#ffffff",
+                "tertiary-fixed": "#ffdad6"
+              },
+              fontFamily: {
+                "headline": ["Inter", "Pretendard"],
+                "body": ["Inter", "Pretendard"],
+                "label": ["Inter", "Pretendard"]
+              },
+              borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+            },
+          },
+        }
+    </script>
+</head>
+<body class="bg-surface text-on-surface flex min-h-screen">
+<!-- SideNavBar Monolith -->
+<aside class="h-screen w-64 fixed left-0 top-0 overflow-y-auto z-40 bg-[#00213f] dark:bg-[#001426] shadow-2xl flex flex-col border-r border-white/5">
+<div class="p-6">
+<div class="text-lg font-bold text-white tracking-tighter flex items-center gap-2">
+<span class="material-symbols-outlined text-blue-500" style="font-variation-settings: 'FILL' 1;">precision_manufacturing</span>
+<span>핵심부품 신뢰성</span>
+</div>
+<div class="text-[10px] text-blue-100/50 mt-1 uppercase tracking-widest font-bold">통합 검증 시스템</div>
+</div>
+<nav class="flex-1 mt-4">
+<!-- Dashboard -->
+<a class="text-blue-100/70 hover:bg-[#003366]/50 rounded-lg mx-2 my-1 px-4 py-3 flex items-center transition-all duration-200 hover:text-white group" href="#">
+<span class="material-symbols-outlined mr-3 text-lg">dashboard</span>
+<span class="font-['Pretendard'] font-bold tracking-tight text-sm">대시보드</span>
+</a>
+<!-- Inspection Standards -->
+<a class="text-blue-100/70 hover:bg-[#003366]/50 rounded-lg mx-2 my-1 px-4 py-3 flex items-center transition-all duration-200 hover:text-white" href="#">
+<span class="material-symbols-outlined mr-3 text-lg">fact_check</span>
+<span class="font-['Pretendard'] font-bold tracking-tight text-sm">부품 점검 및 내부 표준</span>
+</a>
+<!-- Failure History -->
+<a class="text-blue-100/70 hover:bg-[#003366]/50 rounded-lg mx-2 my-1 px-4 py-3 flex items-center transition-all duration-200 hover:text-white" href="#">
+<span class="material-symbols-outlined mr-3 text-lg">history_edu</span>
+<span class="font-['Pretendard'] font-bold tracking-tight text-sm">과거 실패 사례</span>
+</a>
+<!-- Reliability Testing Standards (ACTIVE) -->
+<a class="bg-[#003366] text-white rounded-lg mx-2 my-1 px-4 py-3 flex items-center transition-all duration-200 scale-[0.98]" href="#">
+<span class="material-symbols-outlined mr-3 text-lg text-blue-400" style="font-variation-settings: 'FILL' 1;">biotech</span>
+<span class="font-['Pretendard'] font-bold tracking-tight text-sm">부품 신뢰성 시험 표준</span>
+</a>
+<!-- Admin -->
+<a class="text-blue-100/70 hover:bg-[#003366]/50 rounded-lg mx-2 my-1 px-4 py-3 flex items-center transition-all duration-200 hover:text-white" href="#">
+<span class="material-symbols-outlined mr-3 text-lg">admin_panel_settings</span>
+<span class="font-['Pretendard'] font-bold tracking-tight text-sm">관리자 모드</span>
+</a>
+</nav>
+<div class="p-4 mt-auto border-t border-white/5">
+<div class="flex items-center gap-3 px-2 py-3 bg-[#003366]/30 rounded-lg">
+<div class="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center">
+<span class="material-symbols-outlined text-blue-400 text-sm">person</span>
+</div>
+<div>
+<div class="text-xs text-white font-bold">김철수 책임연구원</div>
+<div class="text-[10px] text-blue-100/50">신뢰성 검증팀</div>
+</div>
+</div>
+</div>
+</aside>
+<!-- Main Content Shell -->
+<main class="flex-1 ml-64 min-h-screen flex flex-col">
+<!-- TopNavBar -->
+<header class="fixed top-0 right-0 left-64 h-16 z-30 bg-white/80 backdrop-blur-md shadow-sm flex items-center justify-between px-8 border-b border-slate-100">
+<div class="flex items-center gap-4 flex-1">
+<div class="relative w-full max-w-md">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-lg">search</span>
+<input class="w-full pl-10 pr-4 py-2 bg-surface-container-low border-none rounded-lg text-sm focus:ring-2 focus:ring-primary/20 transition-all" placeholder="표준 번호, 부품명, 또는 시험 항목 검색..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-6">
+<div class="flex items-center gap-4 text-outline">
+<button class="hover:text-primary transition-colors"><span class="material-symbols-outlined">notifications</span></button>
+<button class="hover:text-primary transition-colors"><span class="material-symbols-outlined">settings</span></button>
+<button class="hover:text-primary transition-colors"><span class="material-symbols-outlined">help_outline</span></button>
+</div>
+<div class="h-8 w-[1px] bg-slate-200"></div>
+<div class="flex items-center gap-3">
+<span class="text-xs font-bold text-primary">KOR</span>
+<img class="w-8 h-8 rounded-full object-cover" data-alt="professional portrait of a korean scientist in a clean laboratory setting with soft lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCteL2f7vB7drhbUWn6I72eEPLKmXNeuY9XDSZA21iS2uOLOjscrZbubiawiJjPbemxdRFWtB8Kgn4Dgunzn7Ic--P3-khpp7eUMuMB9bpSmhOBplFLxEm1Sn30M1r5QRolREm7rf8DeDq-dPI7blG_Dad-c6lRGGNqj1OhAXuWcdJiXte-QNjVhrCWLhGvmGXL9jiANGmA3mNn3OCoMso4VYZanKzMqrgw-MTayiYfdL0opiwCQBaA3Ygm0_Uvg23GkMm1Yy3rn74"/>
+</div>
+</div>
+</header>
+<!-- Canvas Area -->
+<div class="mt-16 p-8 flex-1 bg-surface-container-low/30 overflow-auto">
+<!-- Page Header -->
+<div class="mb-8">
+<h1 class="text-2xl font-bold tracking-tight text-primary mb-2">부품 신뢰성 시험 표준</h1>
+<p class="text-on-surface-variant text-sm">부품별 국제 표준(ISO/IEC) 및 내부 신뢰성 검증 프로세스 가이드라인</p>
+</div>
+<div class="grid grid-cols-12 gap-8">
+<!-- Search & Results Section (Left) -->
+<div class="col-span-12 lg:col-span-5 flex flex-col gap-6">
+<!-- Statistics Bento Card -->
+<div class="grid grid-cols-2 gap-4">
+<div class="bg-surface-container-lowest p-5 rounded-xl shadow-sm border border-slate-100">
+<div class="text-xs font-bold text-outline-variant uppercase mb-2">총 보유 표준</div>
+<div class="text-3xl font-bold text-primary">1,284<span class="text-sm font-medium ml-1">건</span></div>
+</div>
+<div class="bg-surface-container-lowest p-5 rounded-xl shadow-sm border border-slate-100">
+<div class="text-xs font-bold text-outline-variant uppercase mb-2">최근 업데이트</div>
+<div class="text-3xl font-bold text-primary">12<span class="text-sm font-medium ml-1">건</span></div>
+</div>
+</div>
+<!-- Filter & List -->
+<div class="bg-surface-container-lowest rounded-xl shadow-sm border border-slate-100 flex flex-col h-[calc(100vh-380px)] overflow-hidden">
+<div class="p-4 border-b border-slate-50 flex items-center justify-between">
+<span class="text-sm font-bold">검색 결과 <span class="text-surface-tint">4</span>건</span>
+<div class="flex gap-2">
+<button class="p-1.5 rounded bg-surface-container-low text-outline hover:text-primary transition-colors"><span class="material-symbols-outlined text-sm">filter_list</span></button>
+<button class="p-1.5 rounded bg-surface-container-low text-outline hover:text-primary transition-colors"><span class="material-symbols-outlined text-sm">sort</span></button>
+</div>
+</div>
+<div class="flex-1 overflow-y-auto">
+<!-- Standard Item 1 (Selected) -->
+<div class="p-4 bg-primary-fixed/20 border-l-4 border-primary cursor-pointer transition-all">
+<div class="flex justify-between items-start mb-1">
+<span class="text-[10px] font-extrabold text-primary bg-primary-fixed px-2 py-0.5 rounded">ISO/IEC 17025</span>
+<span class="text-[10px] text-outline">v4.2 (2023)</span>
+</div>
+<h3 class="text-sm font-bold text-primary mb-1">고전압 배터리 팩 가속 수명 시험</h3>
+<p class="text-xs text-on-surface-variant line-clamp-2 leading-relaxed">전기차용 배터리 시스템의 가속 열화 모델링 및 고온 다습 환경에서의 수명 예측 알고리즘 검증 표준...</p>
+<div class="mt-3 flex gap-2">
+<span class="px-2 py-0.5 bg-surface-container-high rounded text-[10px] text-on-surface-variant">#전력망</span>
+<span class="px-2 py-0.5 bg-surface-container-high rounded text-[10px] text-on-surface-variant">#배터리</span>
+</div>
+</div>
+<!-- Standard Item 2 -->
+<div class="p-4 hover:bg-surface-container-low cursor-pointer transition-all border-b border-slate-50">
+<div class="flex justify-between items-start mb-1">
+<span class="text-[10px] font-extrabold text-secondary bg-secondary-fixed px-2 py-0.5 rounded">KS R 1024</span>
+<span class="text-[10px] text-outline">v2.1 (2022)</span>
+</div>
+<h3 class="text-sm font-bold text-on-surface mb-1">차량용 MCU 전자기 간섭(EMI) 표준</h3>
+<p class="text-xs text-on-surface-variant line-clamp-2 leading-relaxed">차량 제어 장치의 전자기파 내성 및 방사 노이즈 측정 방법에 관한 국가 표준 절차서...</p>
+<div class="mt-3 flex gap-2">
+<span class="px-2 py-0.5 bg-surface-container-high rounded text-[10px] text-on-surface-variant">#반도체</span>
+<span class="px-2 py-0.5 bg-surface-container-high rounded text-[10px] text-on-surface-variant">#전기안전</span>
+</div>
+</div>
+<!-- Standard Item 3 -->
+<div class="p-4 hover:bg-surface-container-low cursor-pointer transition-all border-b border-slate-50">
+<div class="flex justify-between items-start mb-1">
+<span class="text-[10px] font-extrabold text-secondary bg-secondary-fixed px-2 py-0.5 rounded">AEC-Q100</span>
+<span class="text-[10px] text-outline">v1.0 (2021)</span>
+</div>
+<h3 class="text-sm font-bold text-on-surface mb-1">반도체 부품 온도 및 진동 통합 시험</h3>
+<p class="text-xs text-on-surface-variant line-clamp-2 leading-relaxed">전장용 집적 회로의 스트레스 테스트 인증 기준 및 부품 신뢰성 등급 분류 가이드라인...</p>
+<div class="mt-3 flex gap-2">
+<span class="px-2 py-0.5 bg-surface-container-high rounded text-[10px] text-on-surface-variant">#AEC</span>
+<span class="px-2 py-0.5 bg-surface-container-high rounded text-[10px] text-on-surface-variant">#반도체</span>
+</div>
+</div>
+<!-- Standard Item 4 -->
+<div class="p-4 hover:bg-surface-container-low cursor-pointer transition-all border-b border-slate-50">
+<div class="flex justify-between items-start mb-1">
+<span class="text-[10px] font-extrabold text-secondary bg-secondary-fixed px-2 py-0.5 rounded">IEC 60068</span>
+<span class="text-[10px] text-outline">v3.5 (2024)</span>
+</div>
+<h3 class="text-sm font-bold text-on-surface mb-1">전기 커넥터 기계적 충격 및 피로도 시험</h3>
+<p class="text-xs text-on-surface-variant line-clamp-2 leading-relaxed">다양한 환경 조건에서의 기계적 충격에 의한 단자 접촉 저항 변화율 측정 표준...</p>
+<div class="mt-3 flex gap-2">
+<span class="px-2 py-0.5 bg-surface-container-high rounded text-[10px] text-on-surface-variant">#기계</span>
+<span class="px-2 py-0.5 bg-surface-container-high rounded text-[10px] text-on-surface-variant">#접속기</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Detailed Document View (Right) -->
+<div class="col-span-12 lg:col-span-7">
+<div class="bg-surface-container-lowest rounded-xl shadow-2xl overflow-hidden flex flex-col h-[calc(100vh-210px)] relative">
+<!-- Document Header Action Bar -->
+<div class="px-8 py-4 border-b border-slate-100 flex items-center justify-between bg-white sticky top-0 z-10">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary">description</span>
+<h2 class="font-bold text-primary tracking-tight">ISO/IEC 17025 상세 가이드</h2>
+</div>
+<div class="flex items-center gap-2">
+<button class="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold bg-surface-container-low text-primary hover:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined text-sm">download</span> PDF 다운로드
+                                </button>
+<button class="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold bg-primary text-on-primary hover:opacity-90 transition-opacity">
+<span class="material-symbols-outlined text-sm">print</span> 인쇄
+                                </button>
+</div>
+</div>
+<!-- Technical Content -->
+<div class="flex-1 overflow-y-auto p-12 bg-white">
+<div class="max-w-3xl mx-auto">
+<div class="text-center mb-12">
+<span class="inline-block text-[10px] font-bold tracking-[0.2em] text-outline uppercase mb-4 border-b border-outline/30 pb-1">TECHNICAL STANDARD DOCUMENT</span>
+<h1 class="text-3xl font-extrabold text-primary mb-4 leading-tight">고전압 배터리 팩 가속 수명 시험 및 데이터 분석 표준</h1>
+<div class="flex justify-center gap-8 text-[11px] font-medium text-on-surface-variant">
+<div class="flex flex-col items-center"><span class="text-outline-variant font-bold mb-1">관리 번호</span><span>STD-REL-BATT-001</span></div>
+<div class="flex flex-col items-center"><span class="text-outline-variant font-bold mb-1">최종 개정일</span><span>2023년 11월 15일</span></div>
+<div class="flex flex-col items-center"><span class="text-outline-variant font-bold mb-1">승인 부서</span><span>신뢰성 기술 위원회</span></div>
+</div>
+</div>
+<div class="space-y-10">
+<section>
+<h4 class="text-sm font-extrabold text-primary flex items-center gap-2 mb-4">
+<span class="w-1.5 h-1.5 bg-primary rounded-full"></span> 1. 개요 및 목적
+                                        </h4>
+<p class="text-sm text-on-surface-variant leading-7 pl-4 border-l-2 border-slate-50">
+                                            본 표준은 전기자동차 및 에너지 저장 장치(ESS)용 고전압 배터리 팩의 장기 신뢰성을 단기간 내에 평가하기 위한 가속 수명 시험 방법론을 규정한다. 온도, 습도, 충방전 전류 및 SOC(State of Charge) 레벨을 주요 스트레스 인자로 정의하며, 이를 통한 용량 열화(Capacity Fade) 및 내부 저항 증가율을 측정한다.
+                                        </p>
+</section>
+<section>
+<h4 class="text-sm font-extrabold text-primary flex items-center gap-2 mb-4">
+<span class="w-1.5 h-1.5 bg-primary rounded-full"></span> 2. 시험 환경 조건 (Environmental Specs)
+                                        </h4>
+<div class="grid grid-cols-2 gap-px bg-slate-200 border border-slate-200 rounded-sm overflow-hidden">
+<div class="bg-slate-50 p-3 text-xs font-bold text-secondary">구분</div>
+<div class="bg-slate-50 p-3 text-xs font-bold text-secondary">조건 및 허용 오차</div>
+<div class="bg-white p-3 text-xs">시험 온도 (Ta)</div>
+<div class="bg-white p-3 text-xs">45°C, 55°C, 65°C ± 2°C</div>
+<div class="bg-white p-3 text-xs">상대 습도 (RH)</div>
+<div class="bg-white p-3 text-xs">85% ± 5% (고온고습 조건 시)</div>
+<div class="bg-white p-3 text-xs">충전 전류</div>
+<div class="bg-white p-3 text-xs">1.0C CC/CV Method</div>
+</div>
+</section>
+<section>
+<h4 class="text-sm font-extrabold text-primary flex items-center gap-2 mb-4">
+<span class="w-1.5 h-1.5 bg-primary rounded-full"></span> 3. 시험 절차 (Test Procedure)
+                                        </h4>
+<ol class="space-y-3 pl-4">
+<li class="flex gap-4">
+<span class="font-bold text-primary-fixed-dim text-xs">01</span>
+<p class="text-sm text-on-surface-variant leading-6"><span class="font-bold text-on-surface">초기 특성 측정:</span> 상온(25°C)에서 배터리 팩의 정격 용량 및 1kHz 내부 임피던스를 측정하여 기준 데이터를 확보한다.</p>
+</li>
+<li class="flex gap-4">
+<span class="font-bold text-primary-fixed-dim text-xs">02</span>
+<p class="text-sm text-on-surface-variant leading-6"><span class="font-bold text-on-surface">가속 챔버 안착:</span> 정의된 가속 스트레스 온도 조건에 팩을 안착시키고 최소 4시간의 열 평형 시간을 유지한다.</p>
+</li>
+<li class="flex gap-4">
+<span class="font-bold text-primary-fixed-dim text-xs">03</span>
+<p class="text-sm text-on-surface-variant leading-6"><span class="font-bold text-on-surface">사이클 테스트:</span> 설정된 충방전 맵에 따라 연속 사이클을 수행하며 100회 사이클마다 중간 점검을 실시한다.</p>
+</li>
+</ol>
+</section>
+<div class="bg-surface-container-low p-6 rounded-lg flex gap-4 items-start">
+<span class="material-symbols-outlined text-on-tertiary-container">warning</span>
+<div>
+<h5 class="text-xs font-bold text-on-tertiary-container mb-1">안전 유의 사항</h5>
+<p class="text-[11px] text-on-surface-variant leading-relaxed">시험 도중 배터리 팩 전압이 컷오프 전압(Lower Limit) 이하로 하락하거나 표면 온도가 80°C를 초과할 경우 즉시 시험을 중단하고 소방 장비를 대기시킨다.</p>
+</div>
+</div>
+<div class="relative h-48 rounded-xl overflow-hidden mb-4 group cursor-zoom-in">
+<img class="w-full h-full object-cover brightness-90 group-hover:scale-105 transition-transform duration-700" data-alt="high-tech battery testing chamber with glowing indicators and industrial machinery in a modern research facility" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAOg3gpvcM7nIpww2yo7qQgD_wXRu1oLPuoxqoekCf-K94JRvWNqC2ZCktD4w7c-TA2Kv1Px1ES45-TkOJBTqNdkb6pKkbY-G9dJX32yETNheFaVbMfqTGzX3Ht4o5W5VVaHgDSsgKCUCdgU7f0AhfjsNLbBpnCDA970yXLms_0pehXUXAzr_snAiFrpEEVPFvR5lv3_fez632ahxV2oKlYV01xfVSh_f26m26cDTM3KMVBm0Ew9japIHHabCaUDYn6oN3XaaCifTM"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-4">
+<span class="text-white text-[10px] font-medium tracking-wide">[도식 1] 가속 수명 시험용 항온항습 챔버 구성도</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Document Footer Info -->
+<div class="px-8 py-3 bg-slate-50 border-t border-slate-100 flex justify-between items-center">
+<span class="text-[10px] text-outline">본 문서는 대외비(Confidential)로 관리되며 무단 배포를 금합니다.</span>
+<div class="flex items-center gap-4">
+<button class="text-[10px] font-bold text-primary hover:underline">개정 이력 확인</button>
+<button class="text-[10px] font-bold text-primary hover:underline">관련 표준 연결</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</body></html>

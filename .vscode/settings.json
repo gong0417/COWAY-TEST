@@ -1,0 +1,9 @@
+{
+  "terminal.integrated.profiles.windows": {
+    "Node.js command prompt": {
+      "path": "cmd.exe",
+      "args": ["/k", "${env:ProgramFiles}\\nodejs\\nodevars.bat"],
+      "icon": "terminal-cmd"
+    }
+  }
+}

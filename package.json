@@ -1,0 +1,46 @@
+{
+  "name": "reliability-system",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "sync-db": "node scripts/sync-db.mjs",
+    "upload-data": "node scripts/uploadData.js",
+    "dev": "npm run sync-db && vite",
+    "build": "npm run sync-db && tsc -b && vite build",
+    "preview": "vite preview",
+    "lint": "eslint .",
+    "git-remote": "powershell -ExecutionPolicy Bypass -File ./scripts/git-setup-remote.ps1"
+  },
+  "dependencies": {
+    "canvg": "^3.0.11",
+    "dompurify": "^3.2.4",
+    "firebase": "^11.10.0",
+    "fuse.js": "^7.1.0",
+    "jspdf": "^2.5.2",
+    "lucide-react": "^1.7.0",
+    "papaparse": "^5.5.2",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-router-dom": "^7.5.0",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.22.0",
+    "@tailwindcss/vite": "^4.1.0",
+    "@types/papaparse": "^5.3.15",
+    "@types/react": "^19.0.10",
+    "@types/react-dom": "^19.0.4",
+    "@vitejs/plugin-react": "^4.3.4",
+    "eslint": "^9.22.0",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "dotenv": "^16.4.7",
+    "eslint-plugin-react-refresh": "^0.4.19",
+    "firebase-admin": "^13.0.2",
+    "globals": "^16.0.0",
+    "tailwindcss": "^4.1.0",
+    "typescript": "~5.7.2",
+    "typescript-eslint": "^8.26.1",
+    "vite": "^6.2.0"
+  }
+}

@@ -1,0 +1,376 @@
+<!DOCTYPE html><html class="light" lang="ko"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>과거 실패 사례 - 핵심부품 신뢰성 통합 검증 시스템</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<style>
+        @font-face {
+            font-family: 'Pretendard';
+            src: url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css');
+        }
+        body {
+            font-family: 'Pretendard', 'Inter', sans-serif;
+            background-color: #f7fafc;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            vertical-align: middle;
+        }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              colors: {
+                "surface-container-highest": "#e0e3e5",
+                "outline": "#74777f",
+                "tertiary-fixed-dim": "#ffb3ac",
+                "primary-container": "#003763",
+                "on-error-container": "#93000a",
+                "tertiary": "#4b0004",
+                "surface-variant": "#e0e3e5",
+                "on-primary-fixed": "#001c37",
+                "on-error": "#ffffff",
+                "primary": "#00213f",
+                "secondary-fixed": "#d8e3fa",
+                "surface-container-low": "#f1f4f6",
+                "on-tertiary-fixed-variant": "#930010",
+                "primary-fixed-dim": "#a0c9ff",
+                "secondary-fixed-dim": "#bcc7dd",
+                "background": "#f7fafc",
+                "on-surface": "#181c1e",
+                "on-tertiary-fixed": "#410003",
+                "error": "#ba1a1a",
+                "on-primary-container": "#72a2dc",
+                "surface-bright": "#f7fafc",
+                "secondary-container": "#d5e0f7",
+                "on-tertiary-container": "#ff7369",
+                "secondary": "#545f72",
+                "surface-container-high": "#e5e9eb",
+                "error-container": "#ffdad6",
+                "on-secondary-fixed": "#111c2c",
+                "on-secondary-fixed-variant": "#3c475a",
+                "inverse-surface": "#2d3133",
+                "outline-variant": "#c4c6cf",
+                "on-tertiary": "#ffffff",
+                "surface-dim": "#d7dadc",
+                "on-secondary-container": "#586377",
+                "surface-tint": "#2d6197",
+                "inverse-primary": "#a0c9ff",
+                "surface-container": "#ebeef0",
+                "on-background": "#181c1e",
+                "on-primary": "#ffffff",
+                "surface": "#f7fafc",
+                "surface-container-lowest": "#ffffff",
+                "tertiary-container": "#73000a",
+                "primary-fixed": "#d2e4ff",
+                "on-primary-fixed-variant": "#07497d",
+                "on-surface-variant": "#43474e",
+                "inverse-on-surface": "#eef1f3",
+                "on-secondary": "#ffffff",
+                "tertiary-fixed": "#ffdad6"
+              },
+              fontFamily: {
+                "headline": ["Inter", "Pretendard"],
+                "body": ["Inter", "Pretendard"],
+                "label": ["Inter", "Pretendard"]
+              },
+              borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+            },
+          },
+        }
+      </script>
+</head>
+<body class="text-on-surface">
+<!-- SideNavBar -->
+<aside class="bg-[#00213f] dark:bg-[#001426] h-screen w-64 fixed left-0 top-0 overflow-y-auto z-40 flex flex-col border-r border-white/5 shadow-2xl">
+<div class="p-6">
+<div class="text-lg font-bold text-white tracking-tighter" style="">핵심부품 신뢰성</div>
+<div class="text-xs text-blue-100/50 font-['Pretendard']" style="">통합 검증 시스템</div>
+</div>
+<nav class="flex-1 mt-4">
+<!-- Inactive -->
+<a class="text-blue-100/70 hover:bg-[#003366]/50 rounded-lg mx-2 my-1 px-4 py-3 flex items-center transition-all duration-200" href="#" style="">
+<span class="material-symbols-outlined mr-3" style="">dashboard</span>
+<span class="font-['Pretendard'] font-bold tracking-tight" style="">대시보드</span>
+</a>
+<!-- Inactive -->
+<a class="text-blue-100/70 hover:bg-[#003366]/50 rounded-lg mx-2 my-1 px-4 py-3 flex items-center transition-all duration-200" href="#" style="">
+<span class="material-symbols-outlined mr-3" style="">fact_check</span>
+<span class="font-['Pretendard'] font-bold tracking-tight" style="">부품 점검 및 내부 표준</span>
+</a>
+<!-- ACTIVE: 과거 고장 사례 -->
+<a class="bg-[#003366] text-white rounded-lg mx-2 my-1 px-4 py-3 flex items-center transition-all duration-200 scale-[0.98]" href="#" style="">
+<span class="material-symbols-outlined mr-3" style="">history_edu</span>
+<span class="font-['Pretendard'] font-bold tracking-tight" style="">과거 실패 사례</span>
+</a>
+<!-- Inactive -->
+<a class="text-blue-100/70 hover:bg-[#003366]/50 rounded-lg mx-2 my-1 px-4 py-3 flex items-center transition-all duration-200" href="#" style="">
+<span class="material-symbols-outlined mr-3" style="">biotech</span>
+<span class="font-['Pretendard'] font-bold tracking-tight" style="">부품 신뢰성 시험 표준</span>
+</a>
+<!-- Inactive -->
+<a class="text-blue-100/70 hover:bg-[#003366]/50 rounded-lg mx-2 my-1 px-4 py-3 flex items-center transition-all duration-200 mt-auto" href="#" style="">
+<span class="material-symbols-outlined mr-3" style="">admin_panel_settings</span>
+<span class="font-['Pretendard'] font-bold tracking-tight" style="">관리자 모드</span>
+</a>
+</nav>
+<div class="p-4 border-t border-white/5">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-primary-container flex items-center justify-center text-[10px] text-on-primary-container font-bold" style="">JD</div>
+<div class="text-xs text-white/80">
+<p class="font-bold" style="">홍길동 책임연구원</p>
+<p class="opacity-50 text-[10px]" style="">신뢰성검증팀</p>
+</div>
+</div>
+</div>
+</aside>
+<!-- TopAppBar -->
+<header class="fixed top-0 right-0 left-64 h-16 z-30 bg-white/80 backdrop-blur-md flex items-center justify-between px-8 w-full border-b border-slate-100">
+<div class="flex items-center flex-1 max-w-xl">
+<div class="relative w-full group">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline" style="">search</span>
+<input class="w-full bg-surface-container-low border-none rounded-xl py-2 pl-10 pr-4 focus:ring-2 focus:ring-primary/20 transition-all text-sm body-md" placeholder="부품명, 모델번호 또는 고장 현상 검색..." type="text">
+</div>
+</div>
+<div class="flex items-center gap-4">
+<button class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-slate-50 transition-colors text-secondary" style="">
+<span class="material-symbols-outlined" style="">notifications</span>
+</button>
+<button class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-slate-50 transition-colors text-secondary" style="">
+<span class="material-symbols-outlined" style="">settings</span>
+</button>
+<button class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-slate-50 transition-colors text-secondary" style="">
+<span class="material-symbols-outlined" style="">help_outline</span>
+</button>
+<div class="w-8 h-8 rounded-full bg-surface-container-high overflow-hidden border border-slate-200">
+<img alt="사용자 프로필" data-alt="professional headshot of a male engineer in a white shirt, clean studio background, sharp focus, corporate style" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAB1Jth_hdsXzLVrjovbAyjXcKBiR-M0lj_jr-8TBuu_phg7e0BTi_XNcQSdRRU5octzpVvkUjvUQCZQLJn5t7dSDWl7wKtL1RYe2U6G6WYe6KdlC7BiJ_NklnC_L-FaB8yhFZ0ej4CA97WB3CR1GOz4P_Sk5Bi0uPhCKqufah5hQZu-gK3S_gTZlGOksZCtd_PvqBXTJieENZGowQFuUmt7j00N68XzF2l4GrbqHWl6So02WqZmWhtDtEVlH1v9WNY2rGiPnHFpGg" class="" style="">
+</div>
+</div>
+</header>
+<!-- Main Content -->
+<main class="ml-64 pt-24 px-8 pb-12 min-h-screen bg-surface">
+<!-- Header & Stats -->
+<div class="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
+<div>
+<h1 class="text-3xl font-bold tracking-tight text-primary mb-2" style="">과거 실패 사례 분석</h1>
+<p class="text-on-surface-variant body-md" style="">검색된 부품의 실패 이력 및 정밀 분석 리포트를 확인합니다.</p>
+</div>
+<div class="flex gap-4">
+<div class="bg-surface-container-lowest px-6 py-4 rounded-xl shadow-sm border-none flex items-center gap-4">
+<div class="w-10 h-10 rounded-full bg-error-container flex items-center justify-center text-error">
+<span class="material-symbols-outlined" style="">warning</span>
+</div>
+<div>
+<div class="text-[10px] uppercase tracking-wider text-outline font-bold" style="">누적 고장 건수</div>
+<div class="text-xl font-bold" style="">1,248</div>
+</div>
+</div>
+<div class="bg-surface-container-lowest px-6 py-4 rounded-xl shadow-sm border-none flex items-center gap-4">
+<div class="w-10 h-10 rounded-full bg-secondary-container flex items-center justify-center text-secondary">
+<span class="material-symbols-outlined" style="">analytics</span>
+</div>
+<div>
+<div class="text-[10px] uppercase tracking-wider text-outline font-bold" style="">평균 해결 시간</div>
+<div class="text-xl font-bold" style="">42.5h</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Layout: Grid -->
+<div class="grid grid-cols-12 gap-8">
+<!-- Left: Search Filters & List (Asymmetric focus) -->
+<div class="col-span-12 lg:col-span-8 space-y-6">
+<!-- Filter Bar -->
+<div class="bg-surface-container-low p-2 rounded-xl flex items-center gap-2 overflow-x-auto no-scrollbar">
+<button class="bg-primary text-white px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap" style="">전체 사례</button>
+<button class="px-4 py-2 rounded-lg text-sm text-on-surface-variant hover:bg-surface-container-high transition-colors whitespace-nowrap" style="">엔진 계통</button>
+<button class="px-4 py-2 rounded-lg text-sm text-on-surface-variant hover:bg-surface-container-high transition-colors whitespace-nowrap" style="">전장 시스템</button>
+<button class="px-4 py-2 rounded-lg text-sm text-on-surface-variant hover:bg-surface-container-high transition-colors whitespace-nowrap" style="">조향/현가 장치</button>
+<button class="px-4 py-2 rounded-lg text-sm text-on-surface-variant hover:bg-surface-container-high transition-colors whitespace-nowrap" style="">소프트웨어 오류</button>
+<div class="ml-auto flex items-center pr-2">
+<button class="text-outline hover:text-primary p-2" style="">
+<span class="material-symbols-outlined text-lg" style="">filter_list</span>
+</button>
+</div>
+</div>
+<!-- Failure List Table-like Grid -->
+<div class="space-y-4">
+<!-- Case Item 1 (Selected/Highlighted State) -->
+<div class="bg-surface-container-lowest p-6 rounded-xl shadow-sm border-none hover:shadow-md transition-all cursor-pointer ring-2 ring-primary">
+<div class="flex justify-between items-start mb-4">
+<div class="flex items-center gap-3">
+<span class="bg-error-container text-on-error-container text-[10px] font-bold px-2 py-0.5 rounded" style="">CRITICAL</span>
+<span class="text-outline text-xs font-mono" style="">CASE-2024-0812</span>
+</div>
+<span class="text-outline text-xs" style="">2024.08.12</span>
+</div>
+<h3 class="text-lg font-bold text-on-surface mb-2 leading-snug" style="">고압 펌프 하우징 내벽 미세 크랙 발생 및 유압 저하</h3>
+<div class="flex items-center gap-6 text-sm text-on-surface-variant">
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-sm" style="">precision_manufacturing</span>
+<span class="" style="">Part ID: HP-PUMP-99X</span>
+</div>
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-sm" style="">location_on</span>
+<span class="" style="">울산 2공장 조립라인</span>
+</div>
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-sm" style="">person</span>
+<span class="" style="">이정우 책임</span>
+</div>
+</div>
+</div>
+<!-- Case Item 2 -->
+<div class="bg-surface-container-lowest p-6 rounded-xl shadow-sm border-none hover:shadow-md transition-all cursor-pointer">
+<div class="flex justify-between items-start mb-4">
+<div class="flex items-center gap-3">
+<span class="bg-secondary-fixed text-on-secondary-fixed-variant text-[10px] font-bold px-2 py-0.5 rounded" style="">MODERATE</span>
+<span class="text-outline text-xs font-mono" style="">CASE-2024-0728</span>
+</div>
+<span class="text-outline text-xs" style="">2024.07.28</span>
+</div>
+<h3 class="text-lg font-bold text-on-surface mb-2 leading-snug" style="">제어 모듈(ECU) 통신 캔슬레이션 및 간헐적 신호 유실</h3>
+<div class="flex items-center gap-6 text-sm text-on-surface-variant">
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-sm" style="">precision_manufacturing</span>
+<span class="" style="">Part ID: ECU-CTRL-V2</span>
+</div>
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-sm" style="">location_on</span>
+<span class="" style="">남양 연구소 전장실험실</span>
+</div>
+</div>
+</div>
+<!-- Case Item 3 -->
+<div class="bg-surface-container-lowest p-6 rounded-xl shadow-sm border-none hover:shadow-md transition-all cursor-pointer">
+<div class="flex justify-between items-start mb-4">
+<div class="flex items-center gap-3">
+<span class="bg-tertiary-fixed text-on-tertiary-fixed-variant text-[10px] font-bold px-2 py-0.5 rounded" style="">MINOR</span>
+<span class="text-outline text-xs font-mono" style="">CASE-2024-0615</span>
+</div>
+<span class="text-outline text-xs" style="">2024.06.15</span>
+</div>
+<h3 class="text-lg font-bold text-on-surface mb-2 leading-snug" style="">냉각수 써모스탯 밸브 고착으로 인한 오버히트 위험 감지</h3>
+<div class="flex items-center gap-6 text-sm text-on-surface-variant">
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-sm" style="">precision_manufacturing</span>
+<span class="" style="">Part ID: COOL-THM-01</span>
+</div>
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-sm" style="">location_on</span>
+<span class="" style="">북미 지역 필드 테스트</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Pagination -->
+<div class="flex justify-center py-4">
+<div class="flex items-center gap-2">
+<button class="p-2 hover:bg-surface-container-high rounded-lg text-outline" style="">
+<span class="material-symbols-outlined" style="">chevron_left</span>
+</button>
+<button class="w-8 h-8 rounded-lg bg-primary text-white text-sm font-bold" style="">1</button>
+<button class="w-8 h-8 rounded-lg hover:bg-surface-container-high text-sm font-bold" style="">2</button>
+<button class="w-8 h-8 rounded-lg hover:bg-surface-container-high text-sm font-bold" style="">3</button>
+<button class="p-2 hover:bg-surface-container-high rounded-lg text-outline" style="">
+<span class="material-symbols-outlined" style="">chevron_right</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Right: Detail Window (The "Evidence-based Report") -->
+<div class="col-span-12 lg:col-span-4">
+<div class="sticky top-24 space-y-6">
+<div class="bg-surface-container-lowest rounded-xl shadow-2xl overflow-hidden border-none">
+<!-- Report Header -->
+<div class="bg-primary p-6 text-white">
+<div class="flex justify-between items-center mb-4">
+<span class="text-[10px] tracking-widest font-bold opacity-60 uppercase" style="">Detailed Analysis Report</span>
+<button class="text-white/60 hover:text-white" style="">
+<span class="material-symbols-outlined" style="">open_in_new</span>
+</button>
+</div>
+<h2 class="text-xl font-bold leading-tight" style="">고압 펌프 하우징 미세 크랙 발생 분석</h2>
+</div>
+<div class="p-6 space-y-6 max-h-[calc(100vh-250px)] overflow-y-auto no-scrollbar">
+<!-- Image Evidence -->
+<div>
+<h4 class="text-xs font-bold text-outline uppercase tracking-wider mb-3" style="">고장 부위 이미지 증거</h4>
+<div class="grid grid-cols-2 gap-2">
+<img alt="고장 부위 1" class="rounded-lg object-cover h-32 w-full" data-alt="microscopic close-up of a hairline crack in a metallic industrial part, professional lighting, technical inspection photo" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC8F1eRr7MwXIvCL1B6xJODxjencQABln1OF5rCFXMhFG91bBEt--bRPfevTmHelDS3TjYonjhAXsMbUeT8kReoe2Vdshg59cDi7yeH4NUUMC-AO9KGjFM8yBp6m7925yeU5RRt_V1p4HSKIa1P-T36f1lhWIS8-u9oNur7h3dLowKWJEBzJZUJdI-gyLAulT_KLgS99fWwbOAIeOXOZ5OWal9o9bA45SSzohi5CB4aM9PrXp89nqknOzjelLnix16mDkE7SP_A_do" style="">
+<img alt="고장 부위 2" class="rounded-lg object-cover h-32 w-full" data-alt="industrial metal housing component on a laboratory table, sharp details, blueish technical lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuADde04SrUXm1xo8mVnX0D2fl6dpABZeGnmpwHcJhqmw3hY_So0FVU0czTS4dmwFdhjHZUuvuDLEScPYk6f-fZHgp-fDBzX6SDnuAQoBwP7NFdgRI4Mu-2F3zWiCdbfablywj20Bv6k-UoMY9fXodB1zBAjGU3jzXDIXOeyYUeLco-nvcKHTFvauo9n53_0TQq_U35cRuk8knDJF1jaNzIaCF7nVkOfWPTp2ZkZrEMAdzuFUoBCmpwzlBBRw61mHZg6mmPHtrsFLvo" style="">
+</div>
+</div>
+<!-- Analysis Data -->
+<div class="space-y-4">
+<div class="p-4 bg-surface-container-low rounded-lg">
+<h4 class="text-xs font-bold text-on-surface-variant mb-2" style="">원인 분석 (Root Cause)</h4>
+<p class="text-sm text-on-surface leading-relaxed" style="">
+                                        주조 공정 중 발생한 내부 기포가 고압 반복 하중 상황에서 응력 집중원으로 작용하여 미세 크랙으로 진전됨. 재질 강도 자체는 표준 범위 내에 있으나 공정 품질 관리 미흡으로 판단됨.
+                                    </p>
+</div>
+<div class="grid grid-cols-2 gap-4">
+<div>
+<h4 class="text-xs font-bold text-on-surface-variant mb-1" style="">발생 빈도</h4>
+<div class="text-lg font-bold text-error" style="">상 (High)</div>
+</div>
+<div>
+<h4 class="text-xs font-bold text-on-surface-variant mb-1" style="">검출 난이도</h4>
+<div class="text-lg font-bold" style="">중 (Medium)</div>
+</div>
+</div>
+<div class="pt-4 border-t border-slate-100">
+<h4 class="text-xs font-bold text-on-surface-variant mb-3" style="">조치 현황 (Resolution)</h4>
+<ul class="space-y-3">
+<li class="flex items-start gap-2 text-sm" style="">
+<span class="material-symbols-outlined text-primary text-lg" style="font-variation-settings: &quot;FILL&quot; 1;">check_circle</span>
+<span class="" style="">주조 공정 내 X-ray 전수 검사 단계 추가</span>
+</li>
+<li class="flex items-start gap-2 text-sm" style="">
+<span class="material-symbols-outlined text-primary text-lg" style="font-variation-settings: &quot;FILL&quot; 1;">check_circle</span>
+<span class="" style="">하우징 설계 두께 0.5mm 보강 (V2.1)</span>
+</li>
+<li class="flex items-start gap-2 text-sm opacity-50" style="">
+<span class="material-symbols-outlined text-outline text-lg" style="">pending</span>
+<span class="" style="">차기 생산분 필드 모니터링 진행 중</span>
+</li>
+</ul>
+</div>
+</div>
+<!-- CTA -->
+<div class="pt-4">
+<button class="w-full bg-primary-container text-on-primary-container py-3 rounded-lg font-bold flex items-center justify-center gap-2 hover:bg-primary-container/90 transition-all" style="">
+<span class="material-symbols-outlined" style="">description</span>
+                                    전체 PDF 리포트 다운로드
+                                </button>
+</div>
+</div>
+</div>
+<!-- Related Specs Tip -->
+<div class="bg-secondary-container/30 p-5 rounded-xl border-l-4 border-secondary">
+<h4 class="text-secondary font-bold text-sm mb-2 flex items-center gap-2" style="">
+<span class="material-symbols-outlined text-lg" style="">lightbulb</span>
+                            연관 표준 가이드
+                        </h4>
+<p class="text-xs text-on-secondary-container leading-relaxed" style="">
+                            이 부품의 크랙 현상은 <span class="font-bold underline" style="">ISO-2047 규격</span>의 주조 품질 관리 표준을 참고하여 해결할 수 있습니다.
+                        </p>
+</div>
+</div>
+</div>
+</div>
+</main>
+</body></html>

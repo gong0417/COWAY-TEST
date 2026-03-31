@@ -1,0 +1,102 @@
+@import "tailwindcss";
+
+/* Stitch (Google-style) semantic colors — mirrors stitch-export code.html */
+@theme {
+  --font-sans: "Pretendard", system-ui, sans-serif;
+  --color-brand: #00213f;
+  --color-brand-muted: #0d3a5c;
+  --color-surface: #f7fafc;
+  --color-surface-elevated: #0f1f35;
+  --color-border-subtle: rgba(255, 255, 255, 0.08);
+  --color-primary: #00213f;
+  --color-on-primary: #ffffff;
+  --color-primary-container: #003763;
+  --color-on-primary-container: #72a2dc;
+  --color-primary-fixed: #d2e4ff;
+  --color-on-primary-fixed: #001c37;
+  --color-on-primary-fixed-variant: #07497d;
+  --color-primary-fixed-dim: #a0c9ff;
+  --color-surface-container: #ebeef0;
+  --color-surface-container-low: #f1f4f6;
+  --color-surface-container-lowest: #ffffff;
+  --color-surface-container-high: #e5e9eb;
+  --color-surface-container-highest: #e0e3e5;
+  --color-surface-bright: #f7fafc;
+  --color-surface-dim: #d7dadc;
+  --color-surface-tint: #2d6197;
+  --color-on-surface: #181c1e;
+  --color-on-surface-variant: #43474e;
+  --color-outline: #74777f;
+  --color-outline-variant: #c4c6cf;
+  --color-secondary: #545f72;
+  --color-on-secondary: #ffffff;
+  --color-secondary-container: #d5e0f7;
+  --color-on-secondary-container: #586377;
+  --color-secondary-fixed: #d8e3fa;
+  --color-on-secondary-fixed: #111c2c;
+  --color-on-secondary-fixed-variant: #3c475a;
+  --color-error: #ba1a1a;
+  --color-on-error: #ffffff;
+  --color-error-container: #ffdad6;
+  --color-on-error-container: #93000a;
+  --color-tertiary: #4b0004;
+  --color-tertiary-fixed: #ffdad6;
+  --color-on-tertiary-fixed: #410003;
+  --color-on-tertiary-fixed-variant: #930010;
+  --color-on-tertiary-container: #ff7369;
+  --color-background: #f7fafc;
+  --color-on-background: #181c1e;
+}
+
+@layer base {
+  html {
+    @apply antialiased;
+    font-family: var(--font-sans);
+  }
+
+  .material-symbols-outlined {
+    font-family: "Material Symbols Outlined";
+    font-weight: normal;
+    font-style: normal;
+    font-size: 1.25rem;
+    line-height: 1;
+    letter-spacing: normal;
+    text-transform: none;
+    display: inline-block;
+    white-space: nowrap;
+    word-wrap: normal;
+    direction: ltr;
+    font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
+    -webkit-font-feature-settings: "liga";
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+
+/* 시험 표준 문서 인쇄: Reliability에서 printStandardView() 호출 시 */
+@media print {
+  body.printing-standard aside[data-print-hide],
+  body.printing-standard header[data-print-hide] {
+    display: none !important;
+  }
+  body.printing-standard [data-print-hide="true"] {
+    display: none !important;
+  }
+  body.printing-standard .layout-main-shell {
+    padding-left: 0 !important;
+    padding-top: 0 !important;
+  }
+  body.printing-standard {
+    background: white !important;
+  }
+  body.printing-standard main {
+    padding: 16px !important;
+  }
+}

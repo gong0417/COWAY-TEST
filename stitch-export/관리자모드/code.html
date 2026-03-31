@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+
+<html lang="ko"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>핵심부품 신뢰성 통합 검증 시스템 - 관리자 모드</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        @font-face {
+            font-family: 'Pretendard';
+            src: url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.8/dist/web/static/pretendard.css');
+        }
+        body {
+            font-family: 'Pretendard', 'Inter', sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            vertical-align: middle;
+        }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(12px);
+        }
+        /* Custom scrollbar for technical look */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #e0e3e5;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #c4c6cf;
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "surface-container-highest": "#e0e3e5",
+                        "outline": "#74777f",
+                        "tertiary-fixed-dim": "#ffb3ac",
+                        "primary-container": "#003763",
+                        "on-error-container": "#93000a",
+                        "tertiary": "#4b0004",
+                        "surface-variant": "#e0e3e5",
+                        "on-primary-fixed": "#001c37",
+                        "on-error": "#ffffff",
+                        "primary": "#00213f",
+                        "secondary-fixed": "#d8e3fa",
+                        "surface-container-low": "#f1f4f6",
+                        "on-tertiary-fixed-variant": "#930010",
+                        "primary-fixed-dim": "#a0c9ff",
+                        "secondary-fixed-dim": "#bcc7dd",
+                        "background": "#f7fafc",
+                        "on-surface": "#181c1e",
+                        "on-tertiary-fixed": "#410003",
+                        "error": "#ba1a1a",
+                        "on-primary-container": "#72a2dc",
+                        "surface-bright": "#f7fafc",
+                        "secondary-container": "#d5e0f7",
+                        "on-tertiary-container": "#ff7369",
+                        "secondary": "#545f72",
+                        "surface-container-high": "#e5e9eb",
+                        "error-container": "#ffdad6",
+                        "on-secondary-fixed": "#111c2c",
+                        "on-secondary-fixed-variant": "#3c475a",
+                        "inverse-surface": "#2d3133",
+                        "outline-variant": "#c4c6cf",
+                        "on-tertiary": "#ffffff",
+                        "surface-dim": "#d7dadc",
+                        "on-secondary-container": "#586377",
+                        "surface-tint": "#2d6197",
+                        "inverse-primary": "#a0c9ff",
+                        "surface-container": "#ebeef0",
+                        "on-background": "#181c1e",
+                        "on-primary": "#ffffff",
+                        "surface": "#f7fafc",
+                        "surface-container-lowest": "#ffffff",
+                        "tertiary-container": "#73000a",
+                        "primary-fixed": "#d2e4ff",
+                        "on-primary-fixed-variant": "#07497d",
+                        "on-surface-variant": "#43474e",
+                        "inverse-on-surface": "#eef1f3",
+                        "on-secondary": "#ffffff",
+                        "tertiary-fixed": "#ffdad6"
+                    },
+                    fontFamily: {
+                        "headline": ["Pretendard", "Inter"],
+                        "body": ["Pretendard", "Inter"],
+                        "label": ["Pretendard", "Inter"]
+                    },
+                    borderRadius: { "DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem" },
+                },
+            },
+        }
+    </script>
+</head>
+<body class="bg-surface text-on-surface selection:bg-primary-fixed selection:text-on-primary-fixed">
+<!-- SideNavBar (The Monolith) -->
+<aside class="h-screen w-64 fixed left-0 top-0 overflow-y-auto z-40 bg-[#00213f] dark:bg-[#001426] flex flex-col border-r border-white/5 shadow-2xl">
+<div class="px-6 py-8 flex flex-col gap-1">
+<span class="text-lg font-bold text-white tracking-tighter">핵심부품 신뢰성</span>
+<span class="text-xs text-blue-300/60 font-medium tracking-widest uppercase">통합 검증 시스템</span>
+</div>
+<nav class="flex-1 flex flex-col mt-4">
+<a class="text-blue-100/70 hover:bg-[#003366]/50 rounded-lg mx-2 my-1 px-4 py-3 flex items-center transition-all duration-200 group" href="#">
+<span class="material-symbols-outlined mr-3 text-xl group-hover:text-white" data-icon="dashboard">dashboard</span>
+<span class="font-bold tracking-tight">대시보드</span>
+</a>
+<a class="text-blue-100/70 hover:bg-[#003366]/50 rounded-lg mx-2 my-1 px-4 py-3 flex items-center transition-all duration-200 group" href="#">
+<span class="material-symbols-outlined mr-3 text-xl group-hover:text-white" data-icon="fact_check">fact_check</span>
+<span class="font-bold tracking-tight">부품 점검 및 내부 표준</span>
+</a>
+<a class="text-blue-100/70 hover:bg-[#003366]/50 rounded-lg mx-2 my-1 px-4 py-3 flex items-center transition-all duration-200 group" href="#">
+<span class="material-symbols-outlined mr-3 text-xl group-hover:text-white" data-icon="history_edu">history_edu</span>
+<span class="font-bold tracking-tight">과거 실패 사례</span>
+</a>
+<a class="text-blue-100/70 hover:bg-[#003366]/50 rounded-lg mx-2 my-1 px-4 py-3 flex items-center transition-all duration-200 group" href="#">
+<span class="material-symbols-outlined mr-3 text-xl group-hover:text-white" data-icon="biotech">biotech</span>
+<span class="font-bold tracking-tight">부품 신뢰성 시험 표준</span>
+</a>
+<!-- Active Navigation: 관리자 모드 -->
+<a class="bg-[#003366] text-white rounded-lg mx-2 my-1 px-4 py-3 flex items-center transition-all duration-200 shadow-lg ring-1 ring-white/10 scale-[0.98]" href="#">
+<span class="material-symbols-outlined mr-3 text-xl text-blue-400" data-icon="admin_panel_settings">admin_panel_settings</span>
+<span class="font-bold tracking-tight">관리자 모드</span>
+</a>
+</nav>
+<div class="p-4 mt-auto">
+<div class="bg-white/5 rounded-xl p-4 flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-primary-container flex items-center justify-center text-white font-bold">AD</div>
+<div class="flex flex-col">
+<span class="text-sm font-bold text-white">System Admin</span>
+<span class="text-xs text-blue-200/50">Level 4 Access</span>
+</div>
+</div>
+</div>
+</aside>
+<!-- TopNavBar -->
+<header class="fixed top-0 right-0 left-64 h-16 z-30 bg-white/80 backdrop-blur-md flex items-center justify-between px-8 border-b border-slate-100">
+<div class="flex items-center gap-4 flex-1">
+<div class="relative w-96 group">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg" data-icon="search">search</span>
+<input class="w-full pl-10 pr-4 py-2 bg-surface-container-low border-none rounded-lg text-sm focus:ring-2 focus:ring-primary/20 transition-all" placeholder="부품 코드, 표준 문서, 사용자 검색..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-6">
+<div class="flex items-center gap-2">
+<button class="p-2 text-slate-500 hover:bg-slate-50 rounded-full transition-colors relative">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+<span class="absolute top-2 right-2 w-2 h-2 bg-error rounded-full ring-2 ring-white"></span>
+</button>
+<button class="p-2 text-slate-500 hover:bg-slate-50 rounded-full transition-colors">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+</button>
+<button class="p-2 text-slate-500 hover:bg-slate-50 rounded-full transition-colors">
+<span class="material-symbols-outlined" data-icon="help_outline">help_outline</span>
+</button>
+</div>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="ml-64 pt-16 min-h-screen">
+<div class="p-8 max-w-7xl mx-auto space-y-8">
+<!-- Header Section -->
+<div class="flex justify-between items-end">
+<div class="space-y-1">
+<h1 class="text-3xl font-bold tracking-tight text-primary">데이터베이스 마스터 관리</h1>
+<p class="text-on-surface-variant">시스템 코어 데이터 동기화 및 부품 신뢰성 지표를 직접 관리합니다.</p>
+</div>
+<div class="flex gap-3">
+<button class="flex items-center gap-2 px-5 py-2.5 bg-surface-container-high text-on-surface font-semibold rounded-lg hover:bg-surface-container-highest transition-all">
+<span class="material-symbols-outlined text-xl" data-icon="history">history</span>
+                        변경 이력
+                    </button>
+<button class="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-br from-primary to-primary-container text-white font-bold rounded-lg shadow-lg hover:opacity-90 active:scale-95 transition-all">
+<span class="material-symbols-outlined text-xl" data-icon="save">save</span>
+                        모든 변경사항 저장
+                    </button>
+</div>
+</div>
+<!-- Bento Grid Layout -->
+<div class="grid grid-cols-12 gap-6">
+<!-- Bulk Upload Card (Asymmetric Span) -->
+<div class="col-span-12 lg:col-span-4 bg-surface-container-low rounded-xl p-6 flex flex-col gap-4 border border-outline-variant/10">
+<div class="flex items-center justify-between">
+<h2 class="text-lg font-bold text-primary flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary" data-icon="upload_file">upload_file</span>
+                            대량 데이터 업로드
+                        </h2>
+<span class="text-[10px] font-bold px-2 py-0.5 bg-secondary-container text-on-secondary-container rounded uppercase tracking-wider">Bulk Update</span>
+</div>
+<div class="flex-1 flex flex-col items-center justify-center border-2 border-dashed border-outline-variant rounded-xl bg-surface-container-lowest p-8 text-center space-y-3 cursor-pointer hover:border-primary transition-all group">
+<div class="w-16 h-16 rounded-full bg-primary-fixed flex items-center justify-center group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-3xl text-primary" data-icon="cloud_upload">cloud_upload</span>
+</div>
+<div class="space-y-1">
+<p class="font-bold text-on-surface">파일을 드래그하거나 클릭하여 선택</p>
+<p class="text-xs text-on-surface-variant leading-relaxed">Excel (.xlsx), CSV 지원<br/>최대 50MB, 행 제한 50,000개</p>
+</div>
+</div>
+<div class="bg-white/40 p-4 rounded-lg space-y-3">
+<p class="text-xs font-bold text-on-surface-variant flex items-center gap-1">
+<span class="material-symbols-outlined text-sm" data-icon="info">info</span>
+                            업로드 가이드라인
+                        </p>
+<div class="grid grid-cols-1 gap-2">
+<a class="flex items-center justify-between p-2 bg-surface-container-lowest rounded text-xs font-medium hover:bg-secondary-fixed transition-colors" href="#">
+<span>부품 정보 템플릿 v2.1</span>
+<span class="material-symbols-outlined text-sm" data-icon="download">download</span>
+</a>
+<a class="flex items-center justify-between p-2 bg-surface-container-lowest rounded text-xs font-medium hover:bg-secondary-fixed transition-colors" href="#">
+<span>실패 사례 양식 v1.4</span>
+<span class="material-symbols-outlined text-sm" data-icon="download">download</span>
+</a>
+</div>
+</div>
+</div>
+<!-- Main Data Grid (Power User Interface) -->
+<div class="col-span-12 lg:col-span-8 bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden flex flex-col border border-outline-variant/10">
+<div class="px-6 py-4 bg-surface-container-high flex items-center justify-between">
+<div class="flex gap-4">
+<button class="px-4 py-1.5 bg-primary text-white text-xs font-bold rounded-full">부품 마스터</button>
+<button class="px-4 py-1.5 text-on-surface-variant text-xs font-bold hover:bg-surface-container-highest rounded-full transition-colors">검증 표준</button>
+<button class="px-4 py-1.5 text-on-surface-variant text-xs font-bold hover:bg-surface-container-highest rounded-full transition-colors">사용자 권한</button>
+</div>
+<div class="flex items-center gap-2">
+<button class="p-1.5 text-on-surface-variant hover:bg-white rounded transition-colors">
+<span class="material-symbols-outlined text-xl" data-icon="filter_list">filter_list</span>
+</button>
+<button class="p-1.5 text-on-surface-variant hover:bg-white rounded transition-colors">
+<span class="material-symbols-outlined text-xl" data-icon="add_box">add_box</span>
+</button>
+</div>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead class="bg-surface-container-low border-b border-outline-variant/20">
+<tr>
+<th class="px-6 py-3 text-[11px] font-bold text-on-surface-variant uppercase tracking-widest">Code</th>
+<th class="px-6 py-3 text-[11px] font-bold text-on-surface-variant uppercase tracking-widest">부품명</th>
+<th class="px-6 py-3 text-[11px] font-bold text-on-surface-variant uppercase tracking-widest">분류</th>
+<th class="px-6 py-3 text-[11px] font-bold text-on-surface-variant uppercase tracking-widest">신뢰 등급</th>
+<th class="px-6 py-3 text-[11px] font-bold text-on-surface-variant uppercase tracking-widest">최종 수정일</th>
+<th class="px-6 py-3 text-[11px] font-bold text-on-surface-variant uppercase tracking-widest text-right">관리</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant/10">
+<tr class="hover:bg-primary-fixed/20 transition-colors group">
+<td class="px-6 py-4 font-mono text-sm text-primary font-semibold">ECU-7729-X</td>
+<td class="px-6 py-4 font-medium">제어 장치 메인보드</td>
+<td class="px-6 py-4"><span class="px-2 py-0.5 bg-surface-container-high rounded text-xs">Electronic</span></td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-1.5">
+<span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+<span class="text-xs font-bold">Grade A</span>
+</div>
+</td>
+<td class="px-6 py-4 text-xs text-on-surface-variant">2023.10.24 14:22</td>
+<td class="px-6 py-4 text-right">
+<button class="p-1.5 text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-lg" data-icon="edit">edit</span>
+</button>
+<button class="p-1.5 text-on-surface-variant hover:text-error transition-colors">
+<span class="material-symbols-outlined text-lg" data-icon="delete">delete</span>
+</button>
+</td>
+</tr>
+<tr class="bg-surface-container-low/30 hover:bg-primary-fixed/20 transition-colors group">
+<td class="px-6 py-4 font-mono text-sm text-primary font-semibold">SNS-H32-V1</td>
+<td class="px-6 py-4 font-medium">고정밀 습도 센서</td>
+<td class="px-6 py-4"><span class="px-2 py-0.5 bg-surface-container-high rounded text-xs">Sensor</span></td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-1.5">
+<span class="w-2 h-2 rounded-full bg-amber-500"></span>
+<span class="text-xs font-bold">Grade B+</span>
+</div>
+</td>
+<td class="px-6 py-4 text-xs text-on-surface-variant">2023.11.02 09:15</td>
+<td class="px-6 py-4 text-right">
+<button class="p-1.5 text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-lg" data-icon="edit">edit</span>
+</button>
+<button class="p-1.5 text-on-surface-variant hover:text-error transition-colors">
+<span class="material-symbols-outlined text-lg" data-icon="delete">delete</span>
+</button>
+</td>
+</tr>
+<tr class="hover:bg-primary-fixed/20 transition-colors group">
+<td class="px-6 py-4 font-mono text-sm text-primary font-semibold">ACT-M09-BL</td>
+<td class="px-6 py-4 font-medium">브러시리스 모터</td>
+<td class="px-6 py-4"><span class="px-2 py-0.5 bg-surface-container-high rounded text-xs">Actuator</span></td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-1.5">
+<span class="w-2 h-2 rounded-full bg-error"></span>
+<span class="text-xs font-bold text-error">Warning</span>
+</div>
+</td>
+<td class="px-6 py-4 text-xs text-on-surface-variant">2023.11.12 17:40</td>
+<td class="px-6 py-4 text-right">
+<button class="p-1.5 text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-lg" data-icon="edit">edit</span>
+</button>
+<button class="p-1.5 text-on-surface-variant hover:text-error transition-colors">
+<span class="material-symbols-outlined text-lg" data-icon="delete">delete</span>
+</button>
+</td>
+</tr>
+<tr class="bg-surface-container-low/30 hover:bg-primary-fixed/20 transition-colors group">
+<td class="px-6 py-4 font-mono text-sm text-primary font-semibold">CON-PW44</td>
+<td class="px-6 py-4 font-medium">내열 전원 커넥터</td>
+<td class="px-6 py-4"><span class="px-2 py-0.5 bg-surface-container-high rounded text-xs">Connectivity</span></td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-1.5">
+<span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+<span class="text-xs font-bold">Grade S</span>
+</div>
+</td>
+<td class="px-6 py-4 text-xs text-on-surface-variant">2023.11.15 11:00</td>
+<td class="px-6 py-4 text-right">
+<button class="p-1.5 text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-lg" data-icon="edit">edit</span>
+</button>
+<button class="p-1.5 text-on-surface-variant hover:text-error transition-colors">
+<span class="material-symbols-outlined text-lg" data-icon="delete">delete</span>
+</button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="mt-auto px-6 py-3 bg-surface-container-low flex items-center justify-between border-t border-outline-variant/10">
+<p class="text-[11px] text-on-surface-variant font-bold uppercase tracking-widest">Total 1,248 entries</p>
+<div class="flex gap-1">
+<button class="w-8 h-8 flex items-center justify-center rounded bg-white text-on-surface border border-outline-variant/20"><span class="material-symbols-outlined text-sm" data-icon="chevron_left">chevron_left</span></button>
+<button class="w-8 h-8 flex items-center justify-center rounded bg-primary text-white font-bold text-xs">1</button>
+<button class="w-8 h-8 flex items-center justify-center rounded bg-white text-on-surface border border-outline-variant/20 font-bold text-xs hover:bg-surface-container-highest transition-colors">2</button>
+<button class="w-8 h-8 flex items-center justify-center rounded bg-white text-on-surface border border-outline-variant/20 font-bold text-xs hover:bg-surface-container-highest transition-colors">3</button>
+<button class="w-8 h-8 flex items-center justify-center rounded bg-white text-on-surface border border-outline-variant/20"><span class="material-symbols-outlined text-sm" data-icon="chevron_right">chevron_right</span></button>
+</div>
+</div>
+</div>
+<!-- System Stats & Quick Actions -->
+<div class="col-span-12 grid grid-cols-1 md:grid-cols-3 gap-6">
+<div class="bg-primary-container text-white p-6 rounded-xl flex flex-col justify-between overflow-hidden relative group">
+<span class="material-symbols-outlined absolute -right-4 -bottom-4 text-9xl text-white/5 rotate-12 transition-transform group-hover:rotate-0" data-icon="database">database</span>
+<div class="z-10">
+<h3 class="text-xs font-bold text-blue-300 uppercase tracking-widest mb-1">DB Connection</h3>
+<p class="text-2xl font-bold">Stable (99.9%)</p>
+</div>
+<div class="mt-4 flex items-center gap-2 z-10">
+<div class="flex-1 bg-white/20 h-1 rounded-full overflow-hidden">
+<div class="bg-blue-400 h-full w-[85%]"></div>
+</div>
+<span class="text-[10px] font-mono">1.2ms latency</span>
+</div>
+</div>
+<div class="bg-white p-6 rounded-xl border border-outline-variant/20 flex flex-col justify-between group">
+<div>
+<h3 class="text-xs font-bold text-on-surface-variant uppercase tracking-widest mb-1">Standard Revisions</h3>
+<p class="text-2xl font-bold text-on-surface">12 New Pending</p>
+</div>
+<div class="mt-4 flex gap-2">
+<button class="text-[11px] font-bold text-primary hover:underline">리뷰 바로가기</button>
+<span class="text-on-surface-variant/30">|</span>
+<button class="text-[11px] font-bold text-on-surface-variant hover:text-on-surface">모두 승인</button>
+</div>
+</div>
+<div class="bg-white p-6 rounded-xl border border-outline-variant/20 flex flex-col justify-between">
+<div>
+<h3 class="text-xs font-bold text-on-surface-variant uppercase tracking-widest mb-1">User Management</h3>
+<p class="text-2xl font-bold text-on-surface">43 Active Users</p>
+</div>
+<div class="mt-4 flex items-center -space-x-2">
+<div class="w-8 h-8 rounded-full border-2 border-white bg-slate-200 flex items-center justify-center text-[10px] font-bold">JS</div>
+<div class="w-8 h-8 rounded-full border-2 border-white bg-blue-100 flex items-center justify-center text-[10px] font-bold">MK</div>
+<div class="w-8 h-8 rounded-full border-2 border-white bg-amber-100 flex items-center justify-center text-[10px] font-bold">SY</div>
+<div class="w-8 h-8 rounded-full border-2 border-white bg-slate-100 flex items-center justify-center text-[10px] font-bold text-slate-400">+39</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Contextual FAB (Only for main data management screens) -->
+<button class="fixed bottom-10 right-10 w-16 h-16 bg-primary text-white rounded-full shadow-2xl flex items-center justify-center hover:scale-110 active:scale-95 transition-all group z-50">
+<span class="material-symbols-outlined text-3xl" data-icon="add">add</span>
+<div class="absolute right-20 bg-primary text-white px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-xl">
+            새 부품 추가
+        </div>
+</button>
+</body></html>

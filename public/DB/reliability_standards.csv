@@ -1,0 +1,4 @@
+﻿standardId,componentName,testName,testCondition,acceptanceCriteria,sampleSize,relatedDoc
+REL-BATT-01,고전압 배터리 팩,고온고습 방치,"85℃, 85%RH, 1000h",용량 유지율 95% 이상,5ea,ISO 12405-4
+REL-PCB-05,제어 기판(PCB),열 충격 시험,"-40℃ ~ 105℃, 500cyc",외관 균열 및 기능 이상 없을 것,10ea,IEC 60068-2
+REL-MOT-02,구동 모터,진동 내구 시험,"10~500Hz, 3축, 48h",이음 및 진동 기준치 이내,3ea,사내규격 RS-M02
