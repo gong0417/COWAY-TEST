@@ -54,3 +54,17 @@ CREATE TABLE IF NOT EXISTS reliability_standards (
 );
 
 COMMENT ON TABLE reliability_standards IS 'Source: data/reliability_standards.csv';
+
+-- ---------------------------------------------------------------------------
+-- App users (JWT auth). First registered user becomes admin.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS users (
+  id              SERIAL PRIMARY KEY,
+  username        VARCHAR(50) UNIQUE NOT NULL,
+  password_hash   TEXT NOT NULL,
+  role            VARCHAR(20) NOT NULL DEFAULT 'user'
+    CHECK (role IN ('admin', 'user')),
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_users_username ON users (username);

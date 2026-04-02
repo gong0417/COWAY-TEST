@@ -4,8 +4,10 @@
 import { mapSsmFromPg, mapStandardFromPg } from "../db/pgCollections.js";
 import { parseAllFromDisk } from "./csvParse.js";
 import {
+  loadInspectionOverlay,
   loadReliabilityStandardsOverlay,
   loadSsmOverlay,
+  mergeInspectionItems,
 } from "./stateStore.js";
 
 const SSM_COLS = [
@@ -160,4 +162,60 @@ export function mergedFailureCasesForApi(dataDir) {
  */
 export function mergedReliabilityStandardsForApi(dataDir) {
   return mergeReliabilityPgRows(dataDir).map((row) => mapStandardFromPg(row));
+}
+
+/**
+ * PostgreSQL `inspection_items` 행 → `inspection_overlay.json`에 넣을 앱 형태 문서.
+ * @param {Record<string, unknown>} pgRow
+ */
+export function inspectionPgRowToOverlayDoc(pgRow) {
+  const id = String(pgRow.check_id ?? "");
+  return {
+    id,
+    checkId: id,
+    name: pgRow.inspection_item != null ? String(pgRow.inspection_item) : id,
+    category:
+      pgRow.category != null && String(pgRow.category).trim() !== ""
+        ? String(pgRow.category)
+        : undefined,
+    internalStandard:
+      pgRow.internal_standard != null &&
+      String(pgRow.internal_standard).trim() !== ""
+        ? String(pgRow.internal_standard)
+        : undefined,
+    method:
+      pgRow.method != null && String(pgRow.method).trim() !== ""
+        ? String(pgRow.method)
+        : undefined,
+    revisionDate:
+      pgRow.revision_date != null && String(pgRow.revision_date).trim() !== ""
+        ? String(pgRow.revision_date).slice(0, 10)
+        : undefined,
+    partNumber: id,
+    status: "ok",
+  };
+}
+
+/**
+ * CSV + inspection 오버레이를 `inspection_items` 테이블과 동일한 컬럼 배열로 병합.
+ * @param {string} dataDir
+ * @returns {Record<string, unknown>[]}
+ */
+export function mergeInspectionPgRows(dataDir) {
+  const { inspectionItems } = parseAllFromDisk(dataDir);
+  const overlay = loadInspectionOverlay(dataDir);
+  const mergedApp = mergeInspectionItems(inspectionItems, overlay);
+  return mergedApp
+    .map((item) => ({
+      check_id: String(item.id ?? item.checkId ?? ""),
+      category: item.category ?? null,
+      inspection_item: item.name ?? null,
+      internal_standard: item.internalStandard ?? null,
+      method: item.method ?? null,
+      revision_date: item.revisionDate ?? null,
+    }))
+    .filter((r) => r.check_id)
+    .sort((a, b) =>
+      String(a.check_id).localeCompare(String(b.check_id), "ko"),
+    );
 }

@@ -5,6 +5,8 @@ import { mkdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { getPool } from "./db/pool.js";
+import { requireAdmin, requireAuth } from "./middleware/authMiddleware.js";
+import { createAuthRouter } from "./routes/auth.js";
 import { registerCsvRoutes, ensureDataFiles } from "./routes/csv.js";
 import { createTableRouter } from "./routes/tables.js";
 
@@ -45,10 +47,21 @@ export function createApp(opts = {}) {
   const upload = multer({ storage });
 
   const pool = getPool();
-  registerCsvRoutes(app, { dataDir, uploadsDir, upload, pool });
+  app.use("/api/auth", createAuthRouter(pool));
+  registerCsvRoutes(app, {
+    dataDir,
+    uploadsDir,
+    upload,
+    pool,
+    requireAuth,
+    requireAdmin,
+  });
   ensureDataFiles(dataDir);
 
-  app.use("/api", createTableRouter(pool, { dataDir }));
+  app.use(
+    "/api",
+    createTableRouter(pool, { dataDir, requireAuth, requireAdmin }),
+  );
 
   app.use((err, _req, res, _next) => {
     console.error("[backend]", err);

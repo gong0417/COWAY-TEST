@@ -1,6 +1,7 @@
 import { NavLink, Link } from "react-router-dom";
+import { useAuth } from "@/context/AuthContext";
 
-const nav = [
+const baseNav = [
   { to: "/", label: "대시보드", icon: "dashboard", end: true },
   {
     to: "/inspection",
@@ -15,10 +16,19 @@ const nav = [
     icon: "biotech",
     end: false,
   },
-  { to: "/admin", label: "관리자 모드", icon: "admin_panel_settings", end: false },
 ] as const;
 
+const adminNav = {
+  to: "/admin",
+  label: "관리자 모드",
+  icon: "admin_panel_settings",
+  end: false,
+} as const;
+
 export function SideNavBar() {
+  const { isAuthenticated } = useAuth();
+  const nav = isAuthenticated ? [...baseNav, adminNav] : [...baseNav];
+
   return (
     <aside
       data-print-hide

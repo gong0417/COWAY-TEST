@@ -19,10 +19,13 @@
     "repair:caniuse": "node scripts/repair-caniuse.mjs",
     "import-pg": "node scripts/import-csv-to-pg.mjs",
     "import:data": "node scripts/importCsv.js",
-    "test:db": "node scripts/test-db.mjs"
+    "test:db": "node scripts/test-db.mjs",
+    "apply-schema": "node scripts/apply-schema.mjs"
   },
   "dependencies": {
-    "core-js": "^3.38.0"
+    "bcrypt": "^6.0.0",
+    "core-js": "^3.38.0",
+    "jsonwebtoken": "^9.0.3"
   },
   "devDependencies": {
     "concurrently": "^9.1.2",

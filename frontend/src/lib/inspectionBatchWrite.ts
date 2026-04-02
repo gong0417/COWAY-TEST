@@ -1,10 +1,10 @@
-import { apiUrl } from "@/lib/api";
+import { apiFetch } from "@/lib/api";
 import type { SpreadsheetInspectionRow } from "@/lib/parseInspectionSpreadsheet";
 
 export async function batchCreateInspectionItems(
   rows: SpreadsheetInspectionRow[],
 ): Promise<{ written: number }> {
-  const res = await fetch(apiUrl("/api/inspection-items/batch"), {
+  const res = await apiFetch("/api/inspection-items/batch", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ rows }),

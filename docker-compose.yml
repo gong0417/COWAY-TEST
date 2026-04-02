@@ -64,6 +64,8 @@ services:
       PGDATABASE: ${POSTGRES_DB:-reliability}
       # 비어 있으면 CORS는 요청 Origin 반영(동일 출처 + Nginx 프록시와 호환)
       CORS_ORIGIN: ${CORS_ORIGIN:-}
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env (min 16 chars)}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
     volumes:
       - ./data:/data
     expose:

@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 
-/** Redmine 스타일: 계정 표시 · 내 계정 · 로그인/로그아웃 */
+/** Redmine 스타일: 계정 표시 · 로그인/로그아웃 */
 export function AccountMenu() {
-  const { user, isLoggedIn, login, logout } = useAuth();
+  const { user, isAuthenticated, logout } = useAuth();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -15,7 +16,7 @@ export function AccountMenu() {
     return () => document.removeEventListener("mousedown", onDoc);
   }, []);
 
-  const displayLabel = isLoggedIn ? user : "게스트";
+  const displayLabel = isAuthenticated ? user?.username ?? "사용자" : "게스트";
 
   return (
     <div className="relative" ref={ref}>
@@ -49,30 +50,16 @@ export function AccountMenu() {
         >
           <div className="border-b border-slate-100 px-3 py-2">
             <p className="text-[10px] font-bold uppercase tracking-wide text-outline">
-              계정표시
+              계정
             </p>
             <p className="truncate text-sm font-semibold text-on-surface">
-              {isLoggedIn ? user : "로그인하지 않음"}
+              {isAuthenticated
+                ? `${user?.username} (${user?.role})`
+                : "로그인하지 않음"}
             </p>
           </div>
-          <button
-            type="button"
-            role="menuitem"
-            className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-on-surface hover:bg-slate-50"
-            onClick={() => {
-              setOpen(false);
-              window.alert(
-                "내 계정: 프로필·비밀번호 등은 추후 SSO/Redmine 연동 시 연결할 수 있습니다.",
-              );
-            }}
-          >
-            <span className="material-symbols-outlined text-lg text-on-surface-variant">
-              person
-            </span>
-            내 계정
-          </button>
           <div className="my-1 border-t border-slate-100" />
-          {isLoggedIn ? (
+          {isAuthenticated ? (
             <button
               type="button"
               role="menuitem"
@@ -86,18 +73,15 @@ export function AccountMenu() {
               로그아웃
             </button>
           ) : (
-            <button
-              type="button"
+            <Link
+              to="/login"
               role="menuitem"
               className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm font-semibold text-primary hover:bg-primary-fixed/20"
-              onClick={() => {
-                setOpen(false);
-                login();
-              }}
+              onClick={() => setOpen(false)}
             >
               <span className="material-symbols-outlined text-lg">login</span>
               로그인
-            </button>
+            </Link>
           )}
         </div>
       ) : null}

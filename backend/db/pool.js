@@ -1,23 +1,48 @@
 import pg from "pg";
 
 /**
- * Build pool options from `DATABASE_URL` or `PGHOST` / `PGPORT` / `PGUSER` / `PGPASSWORD` / `PGDATABASE`.
- * Load repo root `.env` via `import "./loadEnv.js"` in `index.js` (or call `dotenv.config()` before importing this module).
+ * Build pool options from:
+ * - `DATABASE_URL`, or
+ * - `PGHOST` / `PGPORT` / `PGUSER` / `PGPASSWORD` / `PGDATABASE`, or
+ * - `DB_HOST` / `DB_PORT` / `DB_USER` / `DB_PASSWORD` / `DB_NAME` (Docker Compose 등 호환)
+ *
+ * Load repo root `.env` via `import "./loadEnv.js"` in `index.js`.
  */
 export function getPoolConfig() {
   const url = process.env.DATABASE_URL?.trim();
   if (url) {
     return { connectionString: url, max: 10 };
   }
-  const host = process.env.PGHOST || "127.0.0.1";
-  const port = Number(process.env.PGPORT || 5432);
-  const user = process.env.PGUSER;
-  const password = process.env.PGPASSWORD;
-  const database = process.env.PGDATABASE;
+
+  let host = process.env.PGHOST?.trim();
+  let port = process.env.PGPORT?.trim();
+  let user = process.env.PGUSER?.trim();
+  let password = process.env.PGPASSWORD;
+  let database = process.env.PGDATABASE?.trim();
+
+  if (!user || !database) {
+    host = process.env.DB_HOST?.trim() || host;
+    port = process.env.DB_PORT?.trim() || port;
+    user = process.env.DB_USER?.trim() || user;
+    if (process.env.DB_PASSWORD !== undefined) {
+      password = process.env.DB_PASSWORD;
+    }
+    database = process.env.DB_NAME?.trim() || database;
+  }
+
+  host = host || "127.0.0.1";
+  const portNum = Number(port || 5432);
   if (!user || !database) {
     return null;
   }
-  return { host, port, user, password, database, max: 10 };
+  return {
+    host,
+    port: Number.isFinite(portNum) ? portNum : 5432,
+    user,
+    password,
+    database,
+    max: 10,
+  };
 }
 
 /**
@@ -44,7 +69,8 @@ export function getPool() {
 
 export function isPoolConfigured() {
   if (process.env.DATABASE_URL?.trim()) return true;
-  return Boolean(process.env.PGUSER && process.env.PGDATABASE);
+  if (process.env.PGUSER?.trim() && process.env.PGDATABASE?.trim()) return true;
+  return Boolean(process.env.DB_USER?.trim() && process.env.DB_NAME?.trim());
 }
 
 /**
@@ -54,7 +80,11 @@ export function isPoolConfigured() {
  */
 export async function testDbConnection(pool) {
   if (!pool) {
-    return { ok: false, error: "Pool not configured (set DATABASE_URL or PGUSER+PGDATABASE)" };
+    return {
+      ok: false,
+      error:
+        "Pool not configured (set DATABASE_URL, or PGUSER+PGDATABASE, or DB_USER+DB_NAME)",
+    };
   }
   try {
     const { rows } = await pool.query(

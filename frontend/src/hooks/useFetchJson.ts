@@ -8,15 +8,28 @@ type State<T> = {
   refetch: () => Promise<void>;
 };
 
+type UseFetchJsonOptions = {
+  /** When true, no network request (e.g. VITE_AUTH_OFFLINE + data loaded elsewhere). */
+  skip?: boolean;
+};
+
 /**
  * Generic GET JSON + loading/error state (useEffect + useState).
  */
-export function useFetchJson<T>(path: string): State<T> {
+export function useFetchJson<T>(
+  path: string,
+  options?: UseFetchJsonOptions,
+): State<T> {
+  const skip = options?.skip === true;
   const [data, setData] = useState<T | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => !skip);
   const [error, setError] = useState<string | null>(null);
 
   const refetch = useCallback(async () => {
+    if (skip) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
@@ -28,11 +41,17 @@ export function useFetchJson<T>(path: string): State<T> {
     } finally {
       setLoading(false);
     }
-  }, [path]);
+  }, [path, skip]);
 
   useEffect(() => {
+    if (skip) {
+      setData(null);
+      setError(null);
+      setLoading(false);
+      return;
+    }
     void refetch();
-  }, [refetch]);
+  }, [refetch, skip]);
 
   return { data, loading, error, refetch };
 }

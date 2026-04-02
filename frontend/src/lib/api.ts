@@ -3,6 +3,38 @@ import type {
   InspectionItem,
   ReliabilityStandard,
 } from "@/types/models";
+import { isAuthOfflineMode } from "@/lib/authMode";
+import { authHeaders, clearAuthToken } from "@/lib/authToken";
+
+function onUnauthorizedResponse(path: string, status: number) {
+  if (isAuthOfflineMode()) return;
+  if (
+    status === 401 &&
+    !path.includes("/auth/login") &&
+    !path.includes("/auth/register")
+  ) {
+    clearAuthToken();
+    try {
+      window.dispatchEvent(new CustomEvent("rs-unauthorized"));
+    } catch {
+      /* ignore */
+    }
+  }
+}
+
+/** `fetch` to API with Bearer token; use for uploads and non-JSON responses. */
+export function apiFetch(path: string, init?: RequestInit): Promise<Response> {
+  return fetch(apiUrl(path), {
+    ...init,
+    headers: {
+      ...authHeaders(),
+      ...normalizeHeaders(init?.headers),
+    },
+  }).then((res) => {
+    onUnauthorizedResponse(path, res.status);
+    return res;
+  });
+}
 
 /**
  * API base for the Node backend.
@@ -53,9 +85,11 @@ export async function fetchApiJson<T>(
     ...init,
     headers: {
       Accept: "application/json",
+      ...authHeaders(),
       ...normalizeHeaders(init?.headers),
     },
   });
+  onUnauthorizedResponse(path, res.status);
   if (!res.ok) {
     const text = await res.text();
     throw new Error(text || `HTTP ${res.status} ${res.statusText}`);

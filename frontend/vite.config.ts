@@ -1,13 +1,17 @@
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
+import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
 /** This file lives in /frontend — always use that folder as Vite root, even if the CLI is run from the repo root. */
 const frontendRoot = fileURLToPath(new URL(".", import.meta.url));
+/** Parent of /frontend = monorepo root. Load `.env` from there (`VITE_*` only exposed to client). */
+const repoRoot = dirname(frontendRoot);
 
 export default defineConfig({
   root: frontendRoot,
+  envDir: repoRoot,
   plugins: [react(), tailwindcss()],
   resolve: {
     alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) },

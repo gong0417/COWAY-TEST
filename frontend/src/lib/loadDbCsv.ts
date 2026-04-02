@@ -8,7 +8,7 @@ import type {
   InspectionItem,
   ReliabilityStandard,
 } from "@/types/models";
-import { apiUrl } from "@/lib/api";
+import { apiFetch } from "@/lib/api";
 
 export interface LoadedCsv {
   inspectionItems: InspectionItem[];
@@ -157,10 +157,40 @@ export function mapStandardRows(rows: Record<string, string>[]): ReliabilityStan
   return out;
 }
 
+/** Same shape as collections API, from `public/DB/*.csv` only (no JWT / no backend). */
+export async function loadAllCsvFromStaticOnly(): Promise<LoadedCsv> {
+  const base = import.meta.env.BASE_URL ?? "/";
+  const prefix = base.endsWith("/") ? base : `${base}/`;
+  const fetchText = async (name: string) => {
+    const url = `${prefix}DB/${name}`;
+    const res = await fetch(url);
+    if (!res.ok) {
+      throw new Error(`CSV 로드 실패: ${url} (${res.status})`);
+    }
+    return res.text();
+  };
+
+  const [ssmText, insText, relText] = await Promise.all([
+    fetchText("ssm.csv"),
+    fetchText("inspection_items.csv"),
+    fetchText("reliability_standards.csv"),
+  ]);
+
+  const ssmRows = parseTable(ssmText);
+  const insRows = parseTable(insText);
+  const relRows = parseTable(relText);
+
+  return {
+    failureCases: mapSsmRows(ssmRows),
+    inspectionItems: mapInspectionRows(insRows),
+    reliabilityStandards: mapStandardRows(relRows),
+  };
+}
+
 /** Fallback when `GET /api/collections` is unavailable: CSV via `/api/db/:name` or static `public/DB`. */
 export async function loadAllCsv(): Promise<LoadedCsv> {
   const fetchText = async (name: string) => {
-    const apiFirst = await fetch(apiUrl(`/api/db/${name}`));
+    const apiFirst = await apiFetch(`/api/db/${name}`);
     if (apiFirst.ok) return apiFirst.text();
 
     const base = import.meta.env.BASE_URL ?? "/";

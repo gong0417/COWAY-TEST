@@ -1,12 +1,16 @@
 import { Router } from "express";
 import {
+  inspectionPgRowToOverlayDoc,
+  mergeInspectionPgRows,
   mergeReliabilityPgRows,
   mergeSsmPgRows,
 } from "../src/collectionMerge.js";
 import { parseAllFromDisk } from "../src/csvParse.js";
 import {
+  loadInspectionOverlay,
   loadReliabilityStandardsOverlay,
   loadSsmOverlay,
+  saveInspectionOverlay,
   saveReliabilityStandardsOverlay,
   saveSsmOverlay,
 } from "../src/stateStore.js";
@@ -110,16 +114,28 @@ function deleteReliabilityFileBacked(dataDir, id) {
   saveReliabilityStandardsOverlay(dataDir, overlay);
 }
 
+function deleteInspectionFileBacked(dataDir, id) {
+  const overlay = loadInspectionOverlay(dataDir);
+  const { inspectionItems } = parseAllFromDisk(dataDir);
+  const inCsv = inspectionItems.some((r) => r.id === id);
+  if (inCsv && !overlay.deletedCsvIds.includes(id)) {
+    overlay.deletedCsvIds.push(id);
+  }
+  delete overlay.byId[id];
+  saveInspectionOverlay(dataDir, overlay);
+}
+
 /**
  * @param {import('pg').Pool | null} pool
- * @param {{ dataDir?: string }} [opts]
+ * @param {{ dataDir?: string; requireAuth?: import('express').RequestHandler; requireAdmin?: import('express').RequestHandler }} [opts]
  */
 export function createTableRouter(pool, opts = {}) {
   const dataDir = opts.dataDir;
+  const { requireAuth, requireAdmin } = opts;
   const router = Router();
 
   /** Discovery: all whitelisted tables and their GET URLs (mounted under `/api`). */
-  router.get("/tables", (_req, res) => {
+  router.get("/tables", requireAuth, (_req, res) => {
     res.json({
       tables: Object.keys(TABLE_META).map((name) => ({
         name,
@@ -130,7 +146,7 @@ export function createTableRouter(pool, opts = {}) {
     });
   });
 
-  router.get("/:table", async (req, res, next) => {
+  router.get("/:table", requireAuth, async (req, res, next) => {
     const table = req.params.table;
     const meta = TABLE_META[table];
     if (!meta) {
@@ -153,6 +169,14 @@ export function createTableRouter(pool, opts = {}) {
           return next(e);
         }
       }
+      if (table === "inspection_items") {
+        if (!requireDataDir(dataDir, res)) return;
+        try {
+          return res.json(mergeInspectionPgRows(dataDir));
+        } catch (e) {
+          return next(e);
+        }
+      }
       return res.status(503).json({ error: "PostgreSQL is not configured" });
     }
     try {
@@ -165,7 +189,7 @@ export function createTableRouter(pool, opts = {}) {
     }
   });
 
-  router.get("/:table/:id", async (req, res, next) => {
+  router.get("/:table/:id", requireAuth, async (req, res, next) => {
     const table = req.params.table;
     const meta = TABLE_META[table];
     if (!meta) {
@@ -195,6 +219,17 @@ export function createTableRouter(pool, opts = {}) {
           return next(e);
         }
       }
+      if (table === "inspection_items") {
+        if (!requireDataDir(dataDir, res)) return;
+        try {
+          const rows = mergeInspectionPgRows(dataDir);
+          const row = rows.find((r) => String(r.check_id) === id);
+          if (!row) return res.status(404).json({ error: "Not found" });
+          return res.json(row);
+        } catch (e) {
+          return next(e);
+        }
+      }
       return res.status(503).json({ error: "PostgreSQL is not configured" });
     }
     try {
@@ -211,7 +246,7 @@ export function createTableRouter(pool, opts = {}) {
     }
   });
 
-  router.post("/:table", async (req, res, next) => {
+  router.post("/:table", requireAuth, requireAdmin, async (req, res, next) => {
     const table = req.params.table;
     const meta = TABLE_META[table];
     if (!meta) {
@@ -222,7 +257,11 @@ export function createTableRouter(pool, opts = {}) {
       return res.status(400).json({ error: "JSON body required" });
     }
     if (!pool) {
-      if (table !== "ssm_cases" && table !== "reliability_standards") {
+      if (
+        table !== "ssm_cases" &&
+        table !== "reliability_standards" &&
+        table !== "inspection_items"
+      ) {
         return res.status(503).json({ error: "PostgreSQL is not configured" });
       }
       if (!requireDataDir(dataDir, res)) return;
@@ -236,11 +275,15 @@ export function createTableRouter(pool, opts = {}) {
         const overlay =
           table === "ssm_cases"
             ? loadSsmOverlay(dataDir)
-            : loadReliabilityStandardsOverlay(dataDir);
+            : table === "reliability_standards"
+              ? loadReliabilityStandardsOverlay(dataDir)
+              : loadInspectionOverlay(dataDir);
         const rowsMerged =
           table === "ssm_cases"
             ? mergeSsmPgRows(dataDir)
-            : mergeReliabilityPgRows(dataDir);
+            : table === "reliability_standards"
+              ? mergeReliabilityPgRows(dataDir)
+              : mergeInspectionPgRows(dataDir);
         const existing = rowsMerged.find((r) => String(r[meta.pk]) === id);
         if (existing && !overlay.byId[id]) {
           return res.status(409).json({ error: "Duplicate primary key" });
@@ -253,6 +296,14 @@ export function createTableRouter(pool, opts = {}) {
               : existing?.[c] ?? null;
         }
         mergedRow[meta.pk] = id;
+        if (table === "inspection_items") {
+          const appDoc = inspectionPgRowToOverlayDoc(mergedRow);
+          overlay.byId[id] = { ...overlay.byId[id], ...appDoc };
+          saveInspectionOverlay(dataDir, overlay);
+          const rows = mergeInspectionPgRows(dataDir);
+          const row = rows.find((r) => String(r.check_id) === id);
+          return res.status(201).json(row);
+        }
         overlay.byId[id] = { ...overlay.byId[id], ...mergedRow };
         if (table === "ssm_cases") {
           saveSsmOverlay(dataDir, overlay);
@@ -293,7 +344,7 @@ export function createTableRouter(pool, opts = {}) {
     }
   });
 
-  router.delete("/:table/:id", async (req, res, next) => {
+  router.delete("/:table/:id", requireAuth, requireAdmin, async (req, res, next) => {
     const table = req.params.table;
     const meta = TABLE_META[table];
     if (!meta) {
@@ -322,6 +373,19 @@ export function createTableRouter(pool, opts = {}) {
             return res.status(404).json({ error: "Not found" });
           }
           deleteReliabilityFileBacked(dataDir, id);
+          return res.status(204).end();
+        } catch (e) {
+          return next(e);
+        }
+      }
+      if (table === "inspection_items") {
+        if (!requireDataDir(dataDir, res)) return;
+        try {
+          const rows = mergeInspectionPgRows(dataDir);
+          if (!rows.some((r) => String(r[meta.pk]) === id)) {
+            return res.status(404).json({ error: "Not found" });
+          }
+          deleteInspectionFileBacked(dataDir, id);
           return res.status(204).end();
         } catch (e) {
           return next(e);

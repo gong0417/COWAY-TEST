@@ -25,14 +25,21 @@ const ALLOWED_CSV = new Set([
 /**
  * CSV / overlay routes; read APIs use PostgreSQL (SELECT) when `pool` is set, else CSV files.
  * @param {import('express').Express} app
- * @param {{ dataDir: string; uploadsDir: string; upload: import('multer').Multer; pool?: import('pg').Pool | null }} ctx
+ * @param {{ dataDir: string; uploadsDir: string; upload: import('multer').Multer; pool?: import('pg').Pool | null; requireAuth: import('express').RequestHandler; requireAdmin: import('express').RequestHandler }} ctx
  */
-export function registerCsvRoutes(app, { dataDir, uploadsDir, upload, pool }) {
+export function registerCsvRoutes(app, {
+  dataDir,
+  uploadsDir,
+  upload,
+  pool,
+  requireAuth,
+  requireAdmin,
+}) {
   app.get("/api/health", (_req, res) => {
     res.json({ ok: true, dataDir, pg: Boolean(pool) });
   });
 
-  app.get("/api/db/:name", (req, res, next) => {
+  app.get("/api/db/:name", requireAuth, requireAdmin, (req, res, next) => {
     try {
       const name = req.params.name;
       if (!ALLOWED_CSV.has(name)) {
@@ -49,7 +56,7 @@ export function registerCsvRoutes(app, { dataDir, uploadsDir, upload, pool }) {
     }
   });
 
-  app.get("/api/collections", async (_req, res, next) => {
+  app.get("/api/collections", requireAuth, async (_req, res, next) => {
     if (pool) {
       try {
         const data = await loadCollectionsFromPool(pool);
@@ -78,7 +85,7 @@ export function registerCsvRoutes(app, { dataDir, uploadsDir, upload, pool }) {
     }
   });
 
-  app.get("/api/failure-cases", async (_req, res, next) => {
+  app.get("/api/failure-cases", requireAuth, async (_req, res, next) => {
     if (pool) {
       try {
         const data = await loadCollectionsFromPool(pool);
@@ -96,7 +103,7 @@ export function registerCsvRoutes(app, { dataDir, uploadsDir, upload, pool }) {
     }
   });
 
-  app.get("/api/reliability-standards", async (_req, res, next) => {
+  app.get("/api/reliability-standards", requireAuth, async (_req, res, next) => {
     if (pool) {
       try {
         const data = await loadCollectionsFromPool(pool);
@@ -114,7 +121,7 @@ export function registerCsvRoutes(app, { dataDir, uploadsDir, upload, pool }) {
     }
   });
 
-  app.get("/api/inspection-items", async (_req, res, next) => {
+  app.get("/api/inspection-items", requireAuth, async (_req, res, next) => {
     if (pool) {
       try {
         const data = await loadCollectionsFromPool(pool);
@@ -135,7 +142,11 @@ export function registerCsvRoutes(app, { dataDir, uploadsDir, upload, pool }) {
     }
   });
 
-  app.post("/api/inspection-items", async (req, res, next) => {
+  app.post(
+    "/api/inspection-items",
+    requireAuth,
+    requireAdmin,
+    async (req, res, next) => {
     try {
       const body = req.body;
       if (!body?.name?.trim()) {
@@ -163,9 +174,14 @@ export function registerCsvRoutes(app, { dataDir, uploadsDir, upload, pool }) {
       console.error(e);
       next(e);
     }
-  });
+  },
+  );
 
-  app.patch("/api/inspection-items/:id", async (req, res, next) => {
+  app.patch(
+    "/api/inspection-items/:id",
+    requireAuth,
+    requireAdmin,
+    async (req, res, next) => {
     try {
       const id = req.params.id;
       const overlay = loadInspectionOverlay(dataDir);
@@ -201,9 +217,14 @@ export function registerCsvRoutes(app, { dataDir, uploadsDir, upload, pool }) {
       console.error(e);
       next(e);
     }
-  });
+  },
+  );
 
-  app.delete("/api/inspection-items/:id", async (req, res, next) => {
+  app.delete(
+    "/api/inspection-items/:id",
+    requireAuth,
+    requireAdmin,
+    async (req, res, next) => {
     try {
       const id = req.params.id;
       const overlay = loadInspectionOverlay(dataDir);
@@ -221,9 +242,14 @@ export function registerCsvRoutes(app, { dataDir, uploadsDir, upload, pool }) {
       console.error(e);
       next(e);
     }
-  });
+  },
+  );
 
-  app.post("/api/inspection-items/batch", async (req, res, next) => {
+  app.post(
+    "/api/inspection-items/batch",
+    requireAuth,
+    requireAdmin,
+    async (req, res, next) => {
     try {
       const rows = req.body?.rows;
       if (!Array.isArray(rows) || rows.length === 0) {
@@ -254,9 +280,10 @@ export function registerCsvRoutes(app, { dataDir, uploadsDir, upload, pool }) {
       console.error(e);
       next(e);
     }
-  });
+  },
+  );
 
-  app.get("/api/file-uploads", (_req, res, next) => {
+  app.get("/api/file-uploads", requireAuth, requireAdmin, (_req, res, next) => {
     try {
       res.json(loadFileUploads(dataDir));
     } catch (e) {
@@ -266,6 +293,8 @@ export function registerCsvRoutes(app, { dataDir, uploadsDir, upload, pool }) {
 
   app.post(
     "/api/file-uploads",
+    requireAuth,
+    requireAdmin,
     (req, res, next) => {
       upload.array("files", 20)(req, res, (err) => {
         if (err) return next(err);
@@ -302,6 +331,8 @@ export function registerCsvRoutes(app, { dataDir, uploadsDir, upload, pool }) {
     },
   );
 
+  // 직접 링크(<img>, <a href>)는 Authorization을 보낼 수 없어 정적 제공만 허용합니다.
+  // 파일명은 업로드 시 타임스탬프가 포함됩니다.
   app.use("/api/files", express.static(uploadsDir));
 }
 

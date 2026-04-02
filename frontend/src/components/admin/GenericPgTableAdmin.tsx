@@ -1,10 +1,32 @@
-import { type FormEvent, useCallback, useEffect, useState } from "react";
+import {
+  type FormEvent,
+  useCallback,
+  useEffect,
+  useState,
+  type ReactNode,
+} from "react";
 import { AdminUploadPanel } from "@/components/admin/AdminUploadPanel";
-import { apiUrl } from "@/lib/api";
+import { useAuth } from "@/context/AuthContext";
+import { useReliabilityDataContext } from "@/context/ReliabilityDataContext";
+import { apiFetch } from "@/lib/api";
 import { friendlyApiMessage } from "@/lib/apiFriendlyError";
+import {
+  failureCasesToSsmTableRows,
+  inspectionItemsToInsTableRows,
+  reliabilityStandardsToTableRows,
+} from "@/lib/adminOfflineRows";
 import type { FileUploadRecord } from "@/types/models";
 
-type TableName = "ssm_cases" | "reliability_standards";
+export type AdminPgTableName =
+  | "ssm_cases"
+  | "reliability_standards"
+  | "inspection_items";
+
+const TABLE_PK: Record<AdminPgTableName, string> = {
+  ssm_cases: "ssm_id",
+  reliability_standards: "standard_id",
+  inspection_items: "check_id",
+};
 
 type UploadBundle = {
   inputId: string;
@@ -22,23 +44,53 @@ export function GenericPgTableAdmin({
   onNotify,
   onChanged,
   upload,
+  reloadSignal = 0,
+  sideExtra,
 }: {
-  table: TableName;
+  table: AdminPgTableName;
   onNotify: (msg: string | null) => void;
   onChanged: () => void;
   upload: UploadBundle;
+  /** 부모에서 refetch 후 목록만 다시 읽을 때 증가 */
+  reloadSignal?: number;
+  sideExtra?: ReactNode;
 }) {
+  const { authOffline } = useAuth();
+  const { failureCases, reliabilityStandards, inspectionItems } =
+    useReliabilityDataContext();
   const [rows, setRows] = useState<Record<string, unknown>[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [form, setForm] = useState<Record<string, string>>({});
   const [listHint, setListHint] = useState<string | null>(null);
 
+  const pk = TABLE_PK[table];
+
   const load = useCallback(async () => {
     setLoading(true);
     setListHint(null);
+    if (authOffline) {
+      try {
+        const fromContext =
+          table === "ssm_cases"
+            ? failureCasesToSsmTableRows(failureCases)
+            : table === "reliability_standards"
+              ? reliabilityStandardsToTableRows(reliabilityStandards)
+              : inspectionItemsToInsTableRows(inspectionItems);
+        setRows(fromContext);
+        setListHint(
+          "오프라인 인증 모드입니다. 목록은 앱과 동일한 로컬 CSV 데이터이며, 서버 추가·삭제·업로드는 할 수 없습니다.",
+        );
+      } catch {
+        setRows([]);
+        setListHint("로컬 데이터를 표시하지 못했습니다.");
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
     try {
-      const r = await fetch(apiUrl(`/api/${table}`));
+      const r = await apiFetch(`/api/${table}`);
       const t = await r.text();
       if (!r.ok) {
         setRows([]);
@@ -52,16 +104,18 @@ export function GenericPgTableAdmin({
     } finally {
       setLoading(false);
     }
-  }, [table]);
+  }, [authOffline, table, failureCases, reliabilityStandards, inspectionItems]);
 
   useEffect(() => {
     void load();
-  }, [load]);
-
-  const pk = table === "ssm_cases" ? "ssm_id" : "standard_id";
+  }, [load, reloadSignal]);
 
   async function submit(e: FormEvent) {
     e.preventDefault();
+    if (authOffline) {
+      onNotify("오프라인 인증 모드에서는 서버에 행을 추가할 수 없습니다.");
+      return;
+    }
     const id = form[pk]?.trim();
     if (!id) {
       onNotify(`${pk} 값은 필수입니다.`);
@@ -76,7 +130,7 @@ export function GenericPgTableAdmin({
         body[k] = s === "" ? null : s;
       }
       body[pk] = id;
-      const r = await fetch(apiUrl(`/api/${table}`), {
+      const r = await apiFetch(`/api/${table}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
@@ -98,11 +152,15 @@ export function GenericPgTableAdmin({
   }
 
   async function removeRow(id: string) {
+    if (authOffline) {
+      onNotify("오프라인 인증 모드에서는 서버에서 삭제할 수 없습니다.");
+      return;
+    }
     if (!confirm(`삭제할까요? (${id})`)) return;
     setBusy(true);
     onNotify(null);
     try {
-      const r = await fetch(apiUrl(`/api/${table}/${encodeURIComponent(id)}`), {
+      const r = await apiFetch(`/api/${table}/${encodeURIComponent(id)}`, {
         method: "DELETE",
       });
       const txt = await r.text();
@@ -123,7 +181,9 @@ export function GenericPgTableAdmin({
   const title =
     table === "ssm_cases"
       ? "SSM 실패 사례 (ssm_cases)"
-      : "신뢰성 시험 표준 (reliability_standards)";
+      : table === "reliability_standards"
+        ? "신뢰성 시험 표준 (reliability_standards)"
+        : "부품 점검 마스터 (inspection_items)";
 
   const formFields: { key: string; label: string; required?: boolean }[] =
     table === "ssm_cases"
@@ -141,15 +201,24 @@ export function GenericPgTableAdmin({
           { key: "document_title", label: "문서 제목" },
           { key: "file_url", label: "파일 URL" },
         ]
-      : [
-          { key: "standard_id", label: "standard_id *", required: true },
-          { key: "component_name", label: "부품명" },
-          { key: "test_name", label: "시험명" },
-          { key: "test_condition", label: "시험 조건" },
-          { key: "acceptance_criteria", label: "합격 기준" },
-          { key: "sample_size", label: "시료 수" },
-          { key: "related_doc", label: "관련 문서" },
-        ];
+      : table === "reliability_standards"
+        ? [
+            { key: "standard_id", label: "standard_id *", required: true },
+            { key: "component_name", label: "부품명" },
+            { key: "test_name", label: "시험명" },
+            { key: "test_condition", label: "시험 조건" },
+            { key: "acceptance_criteria", label: "합격 기준" },
+            { key: "sample_size", label: "시료 수" },
+            { key: "related_doc", label: "관련 문서" },
+          ]
+        : [
+            { key: "check_id", label: "check_id *", required: true },
+            { key: "category", label: "분류" },
+            { key: "inspection_item", label: "점검 항목(표시명)" },
+            { key: "internal_standard", label: "사내 표준" },
+            { key: "method", label: "방법" },
+            { key: "revision_date", label: "개정일 (YYYY-MM-DD)" },
+          ];
 
   return (
     <div className="space-y-6">
@@ -162,7 +231,7 @@ export function GenericPgTableAdmin({
             drag={upload.drag}
             setDrag={upload.setDrag}
             uploading={upload.uploading}
-            apiReady={upload.apiReady}
+            apiReady={upload.apiReady && !authOffline}
             onPickFiles={() => document.getElementById(upload.inputId)?.click()}
             onFiles={upload.onFiles}
             uploads={upload.uploads}
@@ -175,6 +244,11 @@ export function GenericPgTableAdmin({
               JSON 오버레이로 목록·추가·삭제가 동작합니다. NAS·PG 연동 시 서버 설정만 바꾸면 됩니다.
             </p>
           </div>
+          {sideExtra ? (
+            <div className="rounded-lg border border-outline-variant/15 bg-surface-container-lowest p-4">
+              {sideExtra}
+            </div>
+          ) : null}
         </div>
 
         <div className="col-span-12 flex flex-col overflow-hidden rounded-xl border border-outline-variant/10 bg-surface-container-lowest shadow-sm lg:col-span-8">
@@ -217,7 +291,11 @@ export function GenericPgTableAdmin({
                     const summary =
                       table === "ssm_cases"
                         ? String(row.ssm_trouble ?? row.ssm_defining ?? "—")
-                        : String(row.test_name ?? row.component_name ?? "—");
+                        : table === "reliability_standards"
+                          ? String(row.test_name ?? row.component_name ?? "—")
+                          : String(
+                              row.inspection_item ?? row.category ?? "—",
+                            );
                     return (
                       <tr
                         key={id}
@@ -254,6 +332,7 @@ export function GenericPgTableAdmin({
       </div>
 
       <form
+        id="admin-pg-row-form"
         onSubmit={(e) => void submit(e)}
         className="rounded-xl border border-outline-variant/10 bg-surface-container-lowest p-6 shadow-sm"
       >
