@@ -80,22 +80,28 @@
   }
 }
 
-/* 시험 표준 문서 인쇄: Reliability에서 printStandardView() 호출 시 */
+/* 상세 문서 인쇄: 시험 표준·점검·실패 사례에서 printDetailView() 호출 시 */
 @media print {
+  body.printing-detail-view aside[data-print-hide],
+  body.printing-detail-view header[data-print-hide],
   body.printing-standard aside[data-print-hide],
   body.printing-standard header[data-print-hide] {
     display: none !important;
   }
+  body.printing-detail-view [data-print-hide="true"],
   body.printing-standard [data-print-hide="true"] {
     display: none !important;
   }
+  body.printing-detail-view .layout-main-shell,
   body.printing-standard .layout-main-shell {
     padding-left: 0 !important;
     padding-top: 0 !important;
   }
+  body.printing-detail-view,
   body.printing-standard {
     background: white !important;
   }
+  body.printing-detail-view main,
   body.printing-standard main {
     padding: 16px !important;
   }

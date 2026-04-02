@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { DetailModal } from "@/components/DetailModal";
 import { SearchResultsPanel } from "@/components/SearchResultsPanel";
@@ -7,9 +7,8 @@ import { useUnifiedFuseSearch } from "@/hooks/useUnifiedFuseSearch";
 import { useSearchQuery } from "@/context/SearchContext";
 import { FailureCaseDetailBody } from "@/components/FailureCaseDetailBody";
 import { failureCaseToPromptText } from "@/lib/failureCasePrompt";
+import { downloadFailurePdf, printDetailView } from "@/lib/standardExport";
 import { severityPillClass } from "@/lib/severityUi";
-import type { FailureCase } from "@/types/models";
-
 export function FailuresPage() {
   const { query } = useSearchQuery();
   const { failureCases, inspectionItems, reliabilityStandards, loading, error } =
@@ -28,10 +27,24 @@ export function FailuresPage() {
     return failureCases.filter((c) => ids.has(c.id));
   }, [failureCases, query, searchHits]);
 
-  const [selected, setSelected] = useState<FailureCase | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [aiOpen, setAiOpen] = useState(false);
 
-  const display = selected ?? filtered[0] ?? null;
+  useEffect(() => {
+    if (selectedId && !filtered.some((c) => c.id === selectedId)) {
+      setSelectedId(null);
+    }
+  }, [filtered, selectedId]);
+
+  const current = useMemo(() => {
+    const list = filtered;
+    if (!list.length) return null;
+    if (selectedId) {
+      const found = list.find((c) => c.id === selectedId);
+      if (found) return found;
+    }
+    return list[0];
+  }, [filtered, selectedId]);
 
   return (
     <MainLayout>
@@ -40,176 +53,208 @@ export function FailuresPage() {
         <p className="mb-4 text-sm text-error">데이터: {error}</p>
       ) : null}
 
-      <div className="mb-10 flex flex-col justify-between gap-6 md:flex-row md:items-end">
-        <div>
-          <h1 className="mb-2 text-3xl font-bold tracking-tight text-primary">
-            과거 실패 사례 분석
-          </h1>
-          <p className="text-on-surface-variant">
-            검색된 부품의 실패 이력 및 정밀 분석 리포트를 확인합니다.
-          </p>
-        </div>
-        <div className="flex gap-4">
-          <div className="flex items-center gap-4 rounded-xl border border-slate-100 bg-surface-container-lowest px-6 py-4 shadow-sm">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-error-container text-error">
-              <span className="material-symbols-outlined">warning</span>
-            </div>
-            <div>
-              <div className="text-[10px] font-bold uppercase tracking-wider text-outline">
-                등록 사례
+      <div className="mx-auto max-w-7xl">
+        <div className="mb-8 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <h1 className="mb-2 text-2xl font-bold tracking-tight text-primary">
+              과거 실패 사례 분석
+            </h1>
+            <p className="text-sm text-on-surface-variant">
+              검색된 부품의 실패 이력 및 정밀 분석 리포트를 확인합니다.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-4">
+            <div className="flex items-center gap-4 rounded-xl border border-slate-100 bg-surface-container-lowest px-6 py-4 shadow-sm">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-error-container text-error">
+                <span className="material-symbols-outlined">report_problem</span>
               </div>
-              <div className="text-xl font-bold text-on-surface">
-                {loading ? "…" : failureCases.length}
+              <div>
+                <div className="text-[10px] font-bold uppercase tracking-wider text-outline">
+                  등록 사례
+                </div>
+                <div className="text-xl font-bold text-on-surface">
+                  {loading ? "…" : failureCases.length}
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-4 rounded-xl border border-slate-100 bg-surface-container-lowest px-6 py-4 shadow-sm">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary-container text-secondary">
+                <span className="material-symbols-outlined">analytics</span>
+              </div>
+              <div>
+                <div className="text-[10px] font-bold uppercase tracking-wider text-outline">
+                  표시 중
+                </div>
+                <div className="text-xl font-bold text-on-surface">
+                  {loading ? "…" : filtered.length}
+                </div>
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-4 rounded-xl border border-slate-100 bg-surface-container-lowest px-6 py-4 shadow-sm">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary-container text-secondary">
-              <span className="material-symbols-outlined">analytics</span>
-            </div>
-            <div>
-              <div className="text-[10px] font-bold uppercase tracking-wider text-outline">
-                표시 중
-              </div>
-              <div className="text-xl font-bold text-on-surface">
-                {loading ? "…" : filtered.length}
-              </div>
-            </div>
-          </div>
         </div>
-      </div>
 
-      {loading ? (
-        <p className="text-sm text-on-surface-variant">불러오는 중…</p>
-      ) : (
-        <div className="grid grid-cols-12 gap-8">
-          <div className="col-span-12 space-y-6 lg:col-span-8">
-            <div className="flex items-center gap-2 overflow-x-auto rounded-xl bg-surface-container-low p-2 no-scrollbar">
-              <span className="whitespace-nowrap rounded-lg bg-primary px-4 py-2 text-sm font-bold text-on-primary">
-                전체 사례
-              </span>
-              <span className="whitespace-nowrap px-4 py-2 text-sm text-on-surface-variant">
-                통합 검색으로 필터
-              </span>
+        {loading ? (
+          <p className="text-sm text-on-surface-variant">불러오는 중…</p>
+        ) : (
+          <div className="grid grid-cols-12 gap-8">
+            <div
+              data-print-hide="true"
+              className="col-span-12 flex flex-col gap-6 lg:col-span-5"
+            >
+              <div className="flex max-h-[calc(100vh-380px)] flex-col overflow-hidden rounded-xl border border-slate-100 bg-surface-container-lowest shadow-sm">
+                <div className="flex items-center justify-between border-b border-slate-50 p-4">
+                  <span className="text-sm font-bold text-on-surface">
+                    사례 목록 <span className="text-surface-tint">{filtered.length}</span>건
+                  </span>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      className="rounded bg-surface-container-low p-1.5 text-outline transition-colors hover:text-primary"
+                      aria-label="필터"
+                    >
+                      <span className="material-symbols-outlined text-sm">
+                        filter_list
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      className="rounded bg-surface-container-low p-1.5 text-outline transition-colors hover:text-primary"
+                      aria-label="정렬"
+                    >
+                      <span className="material-symbols-outlined text-sm">sort</span>
+                    </button>
+                  </div>
+                </div>
+                <div className="flex-1 divide-y divide-slate-100 overflow-y-auto">
+                  {filtered.map((c) => (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={() => setSelectedId(c.id)}
+                      className={[
+                        "w-full cursor-pointer border-l-4 p-4 text-left transition-all",
+                        current?.id === c.id
+                          ? "border-primary bg-primary-fixed/20"
+                          : "border-transparent bg-white hover:bg-surface-container-low/80",
+                      ].join(" ")}
+                    >
+                      <div className="mb-1 flex flex-wrap items-center gap-2">
+                        <span
+                          className={`rounded px-2 py-0.5 text-[10px] font-bold ${severityPillClass(c.severity)}`}
+                        >
+                          {(c.severity ?? "미분류").toUpperCase()}
+                        </span>
+                        <span className="rounded bg-primary-fixed px-2 py-0.5 font-mono text-[10px] font-extrabold text-primary">
+                          {c.id}
+                        </span>
+                        {c.productLine ? (
+                          <span className="text-[10px] text-outline">{c.productLine}</span>
+                        ) : null}
+                      </div>
+                      <p className="text-sm font-bold text-on-surface">{c.title}</p>
+                      <p className="mt-1 line-clamp-2 text-[10px] text-outline">
+                        {c.ssmDefining ?? c.partName ?? "—"}
+                      </p>
+                      {c.occurredAt ? (
+                        <p className="mt-1 text-[10px] text-outline">{c.occurredAt}</p>
+                      ) : null}
+                    </button>
+                  ))}
+                </div>
+                {filtered.length === 0 ? (
+                  <p className="p-6 text-center text-sm text-on-surface-variant">
+                    표시할 실패 사례가 없습니다.
+                  </p>
+                ) : null}
+              </div>
             </div>
-            <div className="space-y-4">
-              {filtered.map((c) => (
-                <button
-                  key={c.id}
-                  type="button"
-                  onClick={() => setSelected(c)}
-                  className={[
-                    "w-full cursor-pointer rounded-xl border-none bg-surface-container-lowest p-6 text-left shadow-sm transition-all hover:shadow-md",
-                    display?.id === c.id ? "ring-2 ring-primary" : "",
-                  ].join(" ")}
-                >
-                  <div className="mb-4 flex items-start justify-between gap-2">
+
+            <article className="col-span-12 min-w-0 overflow-hidden rounded-xl border border-slate-100 bg-surface-container-lowest shadow-sm lg:col-span-7">
+              {current ? (
+                <>
+                  <header className="border-b border-slate-100 bg-white px-8 py-6">
                     <div className="flex flex-wrap items-center gap-2">
                       <span
-                        className={`rounded px-2 py-0.5 text-[10px] font-bold ${severityPillClass(c.severity)}`}
+                        className={`rounded px-2 py-0.5 text-[10px] font-bold ${severityPillClass(current.severity)}`}
                       >
-                        {(c.severity ?? "미분류").toUpperCase()}
+                        {(current.severity ?? "미분류").toUpperCase()}
                       </span>
-                      <span className="font-mono text-xs font-bold text-primary">
-                        {c.id}
-                      </span>
-                      {c.productLine ? (
-                        <span className="rounded-full bg-surface-container-high px-2 py-0.5 text-[10px] font-bold text-on-surface-variant">
-                          {c.productLine}
+                      <span className="font-mono text-sm text-primary">{current.id}</span>
+                    </div>
+                    <h2 className="mt-2 text-2xl font-bold tracking-tight text-on-surface">
+                      {current.title}
+                    </h2>
+                    <div className="mt-3 flex flex-wrap gap-3 text-xs text-on-surface-variant">
+                      {current.ssmDefining ?? current.partName ? (
+                        <span className="rounded bg-surface-container-low px-2 py-1">
+                          정의 부품: {current.ssmDefining ?? current.partName}
+                        </span>
+                      ) : null}
+                      {current.productLine ? (
+                        <span className="rounded bg-surface-container-low px-2 py-1">
+                          제품군: {current.productLine}
+                        </span>
+                      ) : null}
+                      {current.occurredAt ? (
+                        <span className="rounded bg-surface-container-low px-2 py-1">
+                          발생일: {current.occurredAt}
                         </span>
                       ) : null}
                     </div>
-                    {c.occurredAt ? (
-                      <span className="shrink-0 text-xs text-outline">{c.occurredAt}</span>
-                    ) : null}
-                  </div>
-                  <h3 className="mb-2 text-lg font-bold leading-snug text-on-surface">
-                    {c.title}
-                  </h3>
-                  <p className="mb-2 line-clamp-2 text-sm text-on-surface-variant">
-                    {c.ssmDefining ?? c.partName ?? "—"}
-                  </p>
-                  <div className="flex flex-wrap items-center gap-4 text-sm text-on-surface-variant">
-                    <span className="flex items-center gap-1">
-                      <span className="material-symbols-outlined text-sm">
-                        precision_manufacturing
-                      </span>
-                      {c.partName ?? "정의 부품 미기재"}
-                    </span>
-                  </div>
-                </button>
-              ))}
-            </div>
-            {filtered.length === 0 ? (
-              <p className="py-8 text-center text-sm text-on-surface-variant">
-                표시할 실패 사례가 없습니다.
-              </p>
-            ) : null}
-          </div>
-
-          <div className="col-span-12 lg:col-span-4">
-            <div className="sticky top-28 space-y-6">
-              <div className="overflow-hidden rounded-xl border border-slate-100 bg-surface-container-lowest shadow-xl">
-                <div className="bg-primary p-6 text-on-primary">
-                  <div className="mb-4 flex items-center justify-between">
-                    <span className="text-[10px] font-bold uppercase tracking-widest opacity-60">
-                      Detailed Analysis
-                    </span>
-                    <button
-                      type="button"
-                      className="text-on-primary/60 hover:text-on-primary"
-                      onClick={() => display && setAiOpen(true)}
-                      disabled={!display}
-                      aria-label="AI 요약 열기"
+                    <div
+                      data-print-hide="true"
+                      className="mt-4 flex flex-wrap gap-2 border-t border-slate-100 pt-4"
                     >
-                      <span className="material-symbols-outlined">auto_awesome</span>
-                    </button>
-                  </div>
-                  <h2 className="text-xl font-bold leading-tight">
-                    {display?.title ?? "사례를 선택하세요"}
-                  </h2>
-                </div>
-                <div className="max-h-[calc(100vh-280px)] space-y-6 overflow-y-auto p-6">
-                  {display ? (
-                    <>
-                      <FailureCaseDetailBody c={display} />
+                      <span className="mr-2 self-center text-xs font-bold uppercase tracking-wide text-outline">
+                        문서 작업
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => downloadFailurePdf(current)}
+                        className="inline-flex items-center gap-2 rounded-lg border border-outline-variant/40 bg-surface-container-low px-4 py-2 text-sm font-bold text-primary hover:bg-surface-container-high"
+                      >
+                        <span className="material-symbols-outlined text-lg">picture_as_pdf</span>
+                        PDF 저장
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => printDetailView()}
+                        className="inline-flex items-center gap-2 rounded-lg border border-outline-variant/40 bg-surface-container-low px-4 py-2 text-sm font-bold text-on-surface hover:bg-surface-container-high"
+                      >
+                        <span className="material-symbols-outlined text-lg">print</span>
+                        인쇄
+                      </button>
                       <button
                         type="button"
                         onClick={() => setAiOpen(true)}
-                        className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary-container py-3 font-bold text-on-primary-container transition-all hover:opacity-90"
+                        className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-bold text-on-primary hover:opacity-90"
                       >
-                        <span className="material-symbols-outlined">auto_awesome</span>
-                        AI 요약 / 상세
+                        <span className="material-symbols-outlined text-lg text-on-primary">
+                          auto_awesome
+                        </span>
+                        AI 요약 / 상세 팝업
                       </button>
-                    </>
-                  ) : (
-                    <p className="text-sm text-on-surface-variant">
-                      좌측 목록에서 사례를 선택하세요.
-                    </p>
-                  )}
-                </div>
-              </div>
-              <div className="rounded-xl border-l-4 border-secondary bg-secondary-container/30 p-5">
-                <h4 className="mb-2 flex items-center gap-2 text-sm font-bold text-secondary">
-                  <span className="material-symbols-outlined text-lg">lightbulb</span>
-                  연관 표준
-                </h4>
-                <p className="text-xs leading-relaxed text-on-secondary-container">
-                  시험 표준 메뉴에서 ISO/IEC 및 내부 규격을 함께 확인하세요.
-                </p>
-              </div>
-            </div>
+                    </div>
+                  </header>
+                  <div className="space-y-4 px-8 py-8 text-sm leading-relaxed text-on-surface">
+                    <FailureCaseDetailBody c={current} />
+                  </div>
+                </>
+              ) : (
+                <p className="p-8 text-on-surface-variant">선택된 사례가 없습니다.</p>
+              )}
+            </article>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       <DetailModal
-        open={aiOpen && !!display}
+        open={aiOpen && !!current}
         onClose={() => setAiOpen(false)}
-        title={display?.title ?? ""}
-        aiSourceText={display ? failureCaseToPromptText(display) : ""}
+        title={current?.title ?? ""}
+        aiSourceText={current ? failureCaseToPromptText(current) : ""}
       >
-        {display ? <FailureCaseDetailBody c={display} /> : null}
+        {current ? <FailureCaseDetailBody c={current} /> : null}
       </DetailModal>
     </MainLayout>
   );

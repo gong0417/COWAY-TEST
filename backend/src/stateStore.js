@@ -13,6 +13,11 @@ export function getStatePaths(dataDir) {
   return {
     stateDir,
     inspectionOverlay: join(stateDir, "inspection_overlay.json"),
+    ssmOverlay: join(stateDir, "ssm_overlay.json"),
+    reliabilityStandardsOverlay: join(
+      stateDir,
+      "reliability_standards_overlay.json",
+    ),
     fileUploads: join(stateDir, "file_uploads.json"),
   };
 }
@@ -39,6 +44,40 @@ export function saveInspectionOverlay(dataDir, overlay) {
   const { stateDir, inspectionOverlay } = getStatePaths(dataDir);
   mkdirSync(stateDir, { recursive: true });
   writeFileSync(inspectionOverlay, JSON.stringify(overlay, null, 2), "utf8");
+}
+
+export function loadSsmOverlay(dataDir) {
+  const { ssmOverlay } = getStatePaths(dataDir);
+  const raw = readJson(ssmOverlay, defaultInspectionOverlay);
+  return {
+    byId: typeof raw.byId === "object" && raw.byId ? raw.byId : {},
+    deletedCsvIds: Array.isArray(raw.deletedCsvIds) ? raw.deletedCsvIds : [],
+  };
+}
+
+export function saveSsmOverlay(dataDir, overlay) {
+  const { stateDir, ssmOverlay } = getStatePaths(dataDir);
+  mkdirSync(stateDir, { recursive: true });
+  writeFileSync(ssmOverlay, JSON.stringify(overlay, null, 2), "utf8");
+}
+
+export function loadReliabilityStandardsOverlay(dataDir) {
+  const { reliabilityStandardsOverlay } = getStatePaths(dataDir);
+  const raw = readJson(reliabilityStandardsOverlay, defaultInspectionOverlay);
+  return {
+    byId: typeof raw.byId === "object" && raw.byId ? raw.byId : {},
+    deletedCsvIds: Array.isArray(raw.deletedCsvIds) ? raw.deletedCsvIds : [],
+  };
+}
+
+export function saveReliabilityStandardsOverlay(dataDir, overlay) {
+  const { stateDir, reliabilityStandardsOverlay } = getStatePaths(dataDir);
+  mkdirSync(stateDir, { recursive: true });
+  writeFileSync(
+    reliabilityStandardsOverlay,
+    JSON.stringify(overlay, null, 2),
+    "utf8",
+  );
 }
 
 export function loadFileUploads(dataDir) {

@@ -80,4 +80,6 @@ export interface FileUploadRecord {
   fileName: string;
   url: string;
   createdAt: number;
+  /** 관리자 탭 구분: inspection | ssm_cases | reliability_standards */
+  scope?: string;
 }

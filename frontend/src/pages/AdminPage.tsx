@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
+import { AdminUploadPanel } from "@/components/admin/AdminUploadPanel";
+import { GenericPgTableAdmin } from "@/components/admin/GenericPgTableAdmin";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { SearchResultsPanel } from "@/components/SearchResultsPanel";
 import { useReliabilityDataContext } from "@/context/ReliabilityDataContext";
@@ -8,6 +10,22 @@ import { parseInspectionWorkbook } from "@/lib/parseInspectionSpreadsheet";
 import type { FileUploadRecord, InspectionItem } from "@/types/models";
 
 const GRADE_OPTIONS = ["", "S", "A", "B+", "B", "Warning"] as const;
+
+type AdminDataTarget = "inspection" | "ssm_cases" | "reliability_standards";
+
+const TARGET_TABS: { id: AdminDataTarget; label: string; hint: string }[] = [
+  {
+    id: "inspection",
+    label: "부품 점검",
+    hint: "inspection_items · 오버레이 / 파일",
+  },
+  { id: "ssm_cases", label: "실패 사례", hint: "ssm.csv + data/_state/ssm_overlay.json" },
+  {
+    id: "reliability_standards",
+    label: "시험 표준",
+    hint: "reliability_standards.csv + reliability_standards_overlay.json",
+  },
+];
 
 export function AdminPage() {
   const { inspectionItems, apiReady, refetch, loading, error } =
@@ -29,6 +47,7 @@ export function AdminPage() {
     status: "ok",
   });
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [dataTarget, setDataTarget] = useState<AdminDataTarget>("inspection");
 
   const loadUploads = useCallback(async () => {
     try {
@@ -47,21 +66,21 @@ export function AdminPage() {
   }, []);
 
   useEffect(() => {
-    if (!apiReady) return;
     void loadUploads();
-  }, [apiReady, loadUploads]);
+  }, [loadUploads]);
+
+  const uploadsForScope = useCallback((scope: string) => {
+    return uploads.filter((u) => (u.scope ?? "inspection") === scope);
+  }, [uploads]);
 
   const onFiles = useCallback(
-    async (files: FileList | null) => {
+    async (files: FileList | null, scope: string) => {
       if (!files?.length) return;
-      if (!apiReady) {
-        setUploadMsg("백엔드 API가 준비된 뒤 업로드하세요.");
-        return;
-      }
       setUploading(true);
       setUploadMsg(null);
       try {
         const fd = new FormData();
+        fd.append("scope", scope);
         for (const file of Array.from(files)) {
           fd.append("files", file);
         }
@@ -82,7 +101,7 @@ export function AdminPage() {
         setUploading(false);
       }
     },
-    [apiReady, loadUploads, refetch],
+    [loadUploads, refetch],
   );
 
   async function saveMaster() {
@@ -247,65 +266,96 @@ export function AdminPage() {
           </div>
         </div>
 
+        <div className="mb-6 rounded-xl border border-outline-variant/15 bg-surface-container-low p-2">
+          <p className="mb-2 px-2 text-[10px] font-bold uppercase tracking-wide text-on-surface-variant">
+            관리 데이터 선택
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {TARGET_TABS.map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => setDataTarget(t.id)}
+                className={[
+                  "rounded-lg border px-4 py-2.5 text-left text-sm font-bold transition-colors",
+                  dataTarget === t.id
+                    ? "border-primary bg-primary text-on-primary shadow-sm"
+                    : "border-transparent bg-surface-container-lowest text-on-surface hover:border-outline-variant/30",
+                ].join(" ")}
+              >
+                <span className="block">{t.label}</span>
+                <span
+                  className={
+                    dataTarget === t.id
+                      ? "mt-0.5 block text-[10px] font-normal text-blue-100/90"
+                      : "mt-0.5 block text-[10px] font-normal text-on-surface-variant"
+                  }
+                >
+                  {t.hint}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {uploadMsg ? (
+          <p className="mb-4 rounded-lg border border-primary/25 bg-primary-fixed/15 px-4 py-2 text-sm text-primary">
+            {uploadMsg}
+          </p>
+        ) : null}
+
+        {dataTarget === "ssm_cases" ? (
+          <GenericPgTableAdmin
+            table="ssm_cases"
+            onNotify={setUploadMsg}
+            onChanged={() => void refetch()}
+            upload={{
+              inputId: "admin-file-ssm",
+              scope: "ssm_cases",
+              drag,
+              setDrag,
+              uploading,
+              apiReady,
+              onFiles: (f) => void onFiles(f, "ssm_cases"),
+              uploads: uploadsForScope("ssm_cases"),
+            }}
+          />
+        ) : null}
+        {dataTarget === "reliability_standards" ? (
+          <GenericPgTableAdmin
+            table="reliability_standards"
+            onNotify={setUploadMsg}
+            onChanged={() => void refetch()}
+            upload={{
+              inputId: "admin-file-rel",
+              scope: "reliability_standards",
+              drag,
+              setDrag,
+              uploading,
+              apiReady,
+              onFiles: (f) => void onFiles(f, "reliability_standards"),
+              uploads: uploadsForScope("reliability_standards"),
+            }}
+          />
+        ) : null}
+
+        {dataTarget === "inspection" ? (
         <div className="grid grid-cols-12 gap-6">
           <div className="col-span-12 flex flex-col gap-4 rounded-xl border border-outline-variant/10 bg-surface-container-low p-6 lg:col-span-4">
-            <div className="flex items-center justify-between">
-              <h2 className="flex items-center gap-2 text-lg font-bold text-primary">
-                <span className="material-symbols-outlined text-secondary">
-                  upload_file
-                </span>
-                파일 / 대량 업로드
-              </h2>
-              <span className="rounded bg-secondary-container px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-on-secondary-container">
-                NAS
-              </span>
-            </div>
-            <div
-              role="button"
-              tabIndex={0}
-              onDragOver={(e) => {
-                e.preventDefault();
-                setDrag(true);
-              }}
-              onDragLeave={() => setDrag(false)}
-              onDrop={(e) => {
-                e.preventDefault();
-                setDrag(false);
-                void onFiles(e.dataTransfer.files);
-              }}
-              onClick={() => document.getElementById("admin-file")?.click()}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ")
-                  document.getElementById("admin-file")?.click();
-              }}
-              className={[
-                "flex flex-1 cursor-pointer flex-col items-center justify-center space-y-3 rounded-xl border-2 border-dashed border-outline-variant bg-surface-container-lowest p-8 text-center transition-all hover:border-primary group",
-                drag ? "border-primary bg-primary-fixed/10" : "",
-              ].join(" ")}
-            >
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary-fixed transition-transform group-hover:scale-110">
-                <span className="material-symbols-outlined text-3xl text-primary">
-                  cloud_upload
-                </span>
-              </div>
-              <div className="space-y-1">
-                <p className="font-bold text-on-surface">
-                  드래그하거나 클릭하여 업로드
-                </p>
-                <p className="text-xs leading-relaxed text-on-surface-variant">
-                  Express · 로컬 data/uploads
-                  <br />
-                  {uploading ? "업로드 중…" : "여러 파일 선택 가능"}
-                </p>
-              </div>
-              <input
-                id="admin-file"
-                type="file"
-                multiple
-                className="hidden"
-                onChange={(e) => void onFiles(e.target.files)}
-              />
-            </div>
+            <AdminUploadPanel
+              title="파일 / 대량 업로드"
+              scope="inspection"
+              inputId="admin-file-inspection"
+              drag={drag}
+              setDrag={setDrag}
+              uploading={uploading}
+              apiReady={apiReady}
+              onPickFiles={() =>
+                document.getElementById("admin-file-inspection")?.click()
+              }
+              onFiles={(f) => void onFiles(f, "inspection")}
+              uploads={uploadsForScope("inspection")}
+              extra={
             <div className="rounded-xl border border-dashed border-primary/35 bg-primary-fixed/15 p-4">
               <p className="text-sm font-bold text-primary">
                 엑셀 / CSV → API 일괄 저장
@@ -335,25 +385,8 @@ export function AdminPage() {
                 }}
               />
             </div>
-            {uploadMsg ? (
-              <p className="text-sm text-primary">{uploadMsg}</p>
-            ) : null}
-            {uploads.length > 0 ? (
-              <ul className="space-y-2 text-xs">
-                {uploads.slice(0, 6).map((u) => (
-                  <li key={u.id}>
-                    <a
-                      href={u.url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="font-medium text-primary hover:underline"
-                    >
-                      {u.fileName}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            ) : null}
+              }
+            />
             <div className="space-y-3 rounded-lg bg-white/40 p-4">
               <p className="flex items-center gap-1 text-xs font-bold text-on-surface-variant">
                 <span className="material-symbols-outlined text-sm">info</span>
@@ -394,7 +427,7 @@ export function AdminPage() {
                 </button>
               </div>
             </div>
-            <div className="overflow-x-auto">
+            <div className="max-h-[min(480px,55vh)] overflow-auto">
               <table className="w-full border-collapse text-left">
                 <thead className="border-b border-outline-variant/20 bg-surface-container-low">
                   <tr>
@@ -467,7 +500,9 @@ export function AdminPage() {
             </div>
           </div>
         </div>
+        ) : null}
 
+        {dataTarget === "inspection" ? (
         <section
           id="admin-master-form"
           className="rounded-xl border border-outline-variant/10 bg-surface-container-low p-6"
@@ -597,7 +632,9 @@ export function AdminPage() {
             </div>
           </div>
         </section>
+        ) : null}
 
+        {dataTarget === "inspection" ? (
         <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
           <div className="relative flex flex-col justify-between overflow-hidden rounded-xl bg-primary-container p-6 text-on-primary">
             <span className="material-symbols-outlined pointer-events-none absolute -bottom-4 -right-4 rotate-12 text-9xl text-white/5">
@@ -623,7 +660,9 @@ export function AdminPage() {
               <h3 className="mb-1 text-xs font-bold uppercase tracking-widest text-on-surface-variant">
                 업로드 기록
               </h3>
-              <p className="text-2xl font-bold text-on-surface">{uploads.length}</p>
+              <p className="text-2xl font-bold text-on-surface">
+                {uploadsForScope("inspection").length}
+              </p>
             </div>
           </div>
           <div className="flex flex-col justify-between rounded-xl border border-outline-variant/20 bg-white p-6">
@@ -637,6 +676,7 @@ export function AdminPage() {
             </div>
           </div>
         </div>
+        ) : null}
       </div>
     </MainLayout>
   );

@@ -1,10 +1,14 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { DetailModal } from "@/components/DetailModal";
 import { SearchResultsPanel } from "@/components/SearchResultsPanel";
 import { useReliabilityDataContext } from "@/context/ReliabilityDataContext";
 import { useUnifiedFuseSearch } from "@/hooks/useUnifiedFuseSearch";
 import { useSearchQuery } from "@/context/SearchContext";
+import {
+  downloadInspectionPdf,
+  printDetailView,
+} from "@/lib/standardExport";
 import type { InspectionItem } from "@/types/models";
 
 export function InspectionPage() {
@@ -25,8 +29,24 @@ export function InspectionPage() {
     return inspectionItems.filter((i) => ids.has(i.id));
   }, [inspectionItems, query, searchHits]);
 
-  const [selected, setSelected] = useState<InspectionItem | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
+
+  useEffect(() => {
+    if (selectedId && !filteredItems.some((i) => i.id === selectedId)) {
+      setSelectedId(null);
+    }
+  }, [filteredItems, selectedId]);
+
+  const current = useMemo(() => {
+    const list = filteredItems;
+    if (!list.length) return null;
+    if (selectedId) {
+      const found = list.find((i) => i.id === selectedId);
+      if (found) return found;
+    }
+    return list[0];
+  }, [filteredItems, selectedId]);
 
   return (
     <MainLayout>
@@ -35,165 +55,256 @@ export function InspectionPage() {
         <p className="mb-4 text-sm text-error">데이터: {error}</p>
       ) : null}
       <div className="mx-auto max-w-7xl">
-        <div className="mb-8 flex flex-col justify-between gap-4 md:flex-row md:items-end">
+        <div className="mb-8 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight text-primary">
+            <h1 className="mb-2 text-2xl font-bold tracking-tight text-primary">
               부품 점검 및 사내 표준
             </h1>
-            <p className="mt-1 text-on-surface-variant">
+            <p className="text-sm text-on-surface-variant">
               부품별 정밀 점검 항목과 최신 사내 품질 표준을 확인하십시오.
             </p>
           </div>
-          <div className="flex gap-2">
-            <button
-              type="button"
-              className="flex items-center gap-2 rounded-lg bg-surface-container-lowest px-4 py-2 text-sm font-bold text-secondary shadow-sm transition-all hover:shadow-md"
-            >
-              <span className="material-symbols-outlined text-sm">filter_list</span>
-              필터링
-            </button>
-            <button
-              type="button"
-              className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-bold text-on-primary shadow-lg transition-all hover:opacity-90"
-            >
-              <span className="material-symbols-outlined text-sm">add</span>
-              신규 표준 등록
-            </button>
+          <div className="flex flex-wrap gap-4">
+            <div className="flex items-center gap-4 rounded-xl border border-slate-100 bg-surface-container-lowest px-6 py-4 shadow-sm">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-fixed text-on-primary-fixed">
+                <span className="material-symbols-outlined">inventory_2</span>
+              </div>
+              <div>
+                <div className="text-[10px] font-bold uppercase tracking-wider text-outline">
+                  등록 항목
+                </div>
+                <div className="text-xl font-bold text-on-surface">
+                  {loading ? "…" : inspectionItems.length}
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-4 rounded-xl border border-slate-100 bg-surface-container-lowest px-6 py-4 shadow-sm">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary-container text-secondary">
+                <span className="material-symbols-outlined">analytics</span>
+              </div>
+              <div>
+                <div className="text-[10px] font-bold uppercase tracking-wider text-outline">
+                  표시 중
+                </div>
+                <div className="text-xl font-bold text-on-surface">
+                  {loading ? "…" : filteredItems.length}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
         {loading ? (
           <p className="text-sm text-on-surface-variant">불러오는 중…</p>
         ) : (
-          <div className="grid grid-cols-12 items-start gap-8">
-            <div className="col-span-12 flex flex-col gap-6 lg:col-span-8">
-              <div className="grid grid-cols-2 gap-6">
-                {filteredItems.map((item, idx) => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => {
-                      setSelected(item);
-                      setDetailOpen(false);
-                    }}
-                    className={[
-                      "rounded-xl bg-surface-container-lowest p-6 text-left shadow-sm transition-all hover:border-primary/40 hover:shadow-md",
-                      selected?.id === item.id
-                        ? "border-2 border-primary ring-4 ring-primary/5"
-                        : "border border-slate-100",
-                      idx === 0 ? "md:col-span-2" : "",
-                    ].join(" ")}
-                  >
-                    <div className="mb-4 flex items-start justify-between">
-                      <span className="rounded px-2 py-1 text-[10px] font-bold uppercase tracking-wider bg-primary-fixed text-on-primary-fixed-variant">
-                        {item.category ?? "부품"}
+          <div className="grid grid-cols-12 gap-8">
+            <div
+              data-print-hide="true"
+              className="col-span-12 flex flex-col gap-6 lg:col-span-5"
+            >
+              <div className="flex max-h-[calc(100vh-380px)] flex-col overflow-hidden rounded-xl border border-slate-100 bg-surface-container-lowest shadow-sm">
+                <div className="flex items-center justify-between border-b border-slate-50 p-4">
+                  <span className="text-sm font-bold text-on-surface">
+                    점검 목록{" "}
+                    <span className="text-surface-tint">{filteredItems.length}</span>
+                    건
+                  </span>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      className="rounded bg-surface-container-low p-1.5 text-outline transition-colors hover:text-primary"
+                      aria-label="필터"
+                    >
+                      <span className="material-symbols-outlined text-sm">
+                        filter_list
                       </span>
-                      <StatusIcon status={item.status} active={selected?.id === item.id} />
-                    </div>
-                    <h3 className="text-lg font-bold text-on-surface">{item.name}</h3>
-                  <p className="mt-1 font-mono text-xs text-outline">
-                    {item.checkId ?? item.id}
-                  </p>
-                  {item.internalStandard ? (
-                    <p className="mt-2 line-clamp-3 text-xs leading-relaxed text-on-surface-variant">
-                      사내 표준: {item.internalStandard}
-                    </p>
-                  ) : (
-                    <p className="mt-1 text-sm text-on-surface-variant">
-                      {item.partNumber ?? "P/N 미등록"}
-                    </p>
-                  )}
-                  {item.grade ? (
-                    <p className="mt-2 text-xs font-bold text-primary">
-                      Grade: {item.grade}
-                    </p>
-                  ) : null}
-                  <StatusRow status={item.status} />
-                  </button>
-                ))}
+                    </button>
+                    <button
+                      type="button"
+                      className="rounded bg-surface-container-low p-1.5 text-outline transition-colors hover:text-primary"
+                      aria-label="정렬"
+                    >
+                      <span className="material-symbols-outlined text-sm">sort</span>
+                    </button>
+                  </div>
+                </div>
+                <div className="flex-1 divide-y divide-slate-100 overflow-y-auto">
+                  {filteredItems.map((doc) => (
+                    <button
+                      key={doc.id}
+                      type="button"
+                      onClick={() => setSelectedId(doc.id)}
+                      className={[
+                        "w-full cursor-pointer border-l-4 p-4 text-left transition-all",
+                        current?.id === doc.id
+                          ? "border-primary bg-primary-fixed/20"
+                          : "border-transparent bg-white hover:bg-surface-container-low/80",
+                      ].join(" ")}
+                    >
+                      <div className="mb-1 flex items-start justify-between gap-2">
+                        <span className="rounded bg-primary-fixed px-2 py-0.5 font-mono text-[10px] font-extrabold text-primary">
+                          {doc.checkId ?? doc.id}
+                        </span>
+                        {doc.category ? (
+                          <span className="text-[10px] text-outline">{doc.category}</span>
+                        ) : null}
+                      </div>
+                      {doc.grade ? (
+                        <p className="text-xs font-bold text-secondary">Grade: {doc.grade}</p>
+                      ) : null}
+                      <p className="text-sm font-bold text-on-surface">{doc.name}</p>
+                      {doc.internalStandard ? (
+                        <p className="mt-1 line-clamp-2 text-[10px] text-outline">
+                          {doc.internalStandard}
+                        </p>
+                      ) : doc.partNumber ? (
+                        <p className="mt-1 font-mono text-[10px] text-outline">
+                          {doc.partNumber}
+                        </p>
+                      ) : null}
+                    </button>
+                  ))}
+                </div>
               </div>
-              {filteredItems.length === 0 ? (
-                <p className="py-8 text-center text-sm text-on-surface-variant">
-                  표시할 부품이 없습니다.
-                </p>
-              ) : null}
             </div>
 
-            <aside className="col-span-12 rounded-xl border border-slate-100 bg-surface-container-lowest shadow-sm lg:sticky lg:top-28 lg:col-span-4 lg:self-start">
-              <div className="border-b border-slate-100 px-5 py-4">
-                <h2 className="text-sm font-bold text-on-surface">상세 정보</h2>
-                <p className="text-xs text-on-surface-variant">
-                  카드를 선택하면 표시됩니다.
-                </p>
-              </div>
-              <div className="space-y-4 p-5 text-sm">
-                {selected ? (
-                  <>
-                    <Field label="점검 ID" value={selected.checkId ?? selected.id} />
-                    <Field label="부품명" value={selected.name} />
-                    <Field label="분류" value={selected.category} />
-                    <Field label="신뢰 등급 (Grade)" value={selected.grade} />
-                    {selected.internalStandard ? (
-                      <Field label="사내 표준 (internalStandard)" value={selected.internalStandard} />
+            <article className="col-span-12 min-w-0 overflow-hidden rounded-xl border border-slate-100 bg-surface-container-lowest shadow-sm lg:col-span-7">
+              {current ? (
+                <>
+                  <header className="border-b border-slate-100 bg-white px-8 py-6">
+                    <p className="font-mono text-sm text-primary">
+                      {current.checkId ?? current.id}
+                    </p>
+                    <h2 className="mt-1 text-2xl font-bold tracking-tight text-on-surface">
+                      {current.name}
+                    </h2>
+                    <div className="mt-3 flex flex-wrap gap-3 text-xs text-on-surface-variant">
+                      {current.category ? (
+                        <span className="rounded bg-surface-container-low px-2 py-1">
+                          분류: {current.category}
+                        </span>
+                      ) : null}
+                      {current.grade ? (
+                        <span className="rounded bg-surface-container-low px-2 py-1">
+                          Grade: {current.grade}
+                        </span>
+                      ) : null}
+                      {current.partNumber ? (
+                        <span className="rounded bg-surface-container-low px-2 py-1">
+                          품번: {current.partNumber}
+                        </span>
+                      ) : null}
+                      {current.revisionDate ? (
+                        <span className="rounded bg-surface-container-low px-2 py-1">
+                          개정: {current.revisionDate}
+                        </span>
+                      ) : null}
+                    </div>
+                    <div
+                      data-print-hide="true"
+                      className="mt-4 flex flex-wrap gap-2 border-t border-slate-100 pt-4"
+                    >
+                      <span className="mr-2 self-center text-xs font-bold uppercase tracking-wide text-outline">
+                        문서 작업
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => downloadInspectionPdf(current)}
+                        className="inline-flex items-center gap-2 rounded-lg border border-outline-variant/40 bg-surface-container-low px-4 py-2 text-sm font-bold text-primary hover:bg-surface-container-high"
+                      >
+                        <span className="material-symbols-outlined text-lg">picture_as_pdf</span>
+                        PDF 저장
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => printDetailView()}
+                        className="inline-flex items-center gap-2 rounded-lg border border-outline-variant/40 bg-surface-container-low px-4 py-2 text-sm font-bold text-on-surface hover:bg-surface-container-high"
+                      >
+                        <span className="material-symbols-outlined text-lg">print</span>
+                        인쇄
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDetailOpen(true)}
+                        className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-bold text-on-primary hover:opacity-90"
+                      >
+                        <span className="material-symbols-outlined text-lg text-on-primary">
+                          auto_awesome
+                        </span>
+                        AI 요약 / 상세 팝업
+                      </button>
+                    </div>
+                  </header>
+                  <div className="space-y-4 px-8 py-8 text-sm leading-relaxed text-on-surface">
+                    {current.internalStandard?.trim() ? (
+                      <section>
+                        <h3 className="mb-2 text-xs font-bold uppercase tracking-wide text-primary">
+                          사내 표준
+                        </h3>
+                        <p className="whitespace-pre-wrap text-justify">{current.internalStandard}</p>
+                      </section>
                     ) : null}
-                    {selected.method ? <Field label="시험·검사 방법" value={selected.method} /> : null}
-                    {selected.revisionDate ? (
-                      <Field label="개정일" value={selected.revisionDate} />
+                    {current.method?.trim() ? (
+                      <section>
+                        <h3 className="mb-2 text-xs font-bold uppercase tracking-wide text-primary">
+                          시험·검사 방법
+                        </h3>
+                        <p className="whitespace-pre-wrap text-justify">{current.method}</p>
+                      </section>
                     ) : null}
-                    <div className="rounded-lg border border-primary/20 bg-primary-fixed/10 p-3">
-                      <p className="text-xs font-bold uppercase tracking-wide text-primary">
-                        주요 점검 항목 (Major checks)
-                      </p>
-                      <ul className="mt-2 space-y-2 text-sm text-on-surface">
+                    <aside className="rounded-xl border border-primary/20 bg-primary-fixed/10 p-5">
+                      <h3 className="mb-2 flex items-center gap-2 text-sm font-bold text-primary">
+                        <span className="material-symbols-outlined text-lg">fact_check</span>
+                        주요 점검 항목
+                      </h3>
+                      <ul className="space-y-2 text-sm">
                         <li>
                           <span className="text-on-surface-variant">SOC 정밀도: </span>
-                          {selected.socPrecision?.trim() ? selected.socPrecision : "—"}
+                          {current.socPrecision?.trim() ? current.socPrecision : "—"}
                         </li>
                         <li>
                           <span className="text-on-surface-variant">절연 저항: </span>
-                          {selected.insulationResistance?.trim()
-                            ? selected.insulationResistance
+                          {current.insulationResistance?.trim()
+                            ? current.insulationResistance
                             : "—"}
                         </li>
                       </ul>
-                    </div>
-                    <Field label="비고" value={selected.notes} />
-                    <button
-                      type="button"
-                      onClick={() => setDetailOpen(true)}
-                      className="mt-2 inline-flex items-center gap-2 rounded-lg border border-primary/30 bg-primary px-3 py-2 text-xs font-bold text-on-primary hover:opacity-90"
-                    >
-                      <span className="material-symbols-outlined text-base">
-                        open_in_new
-                      </span>
-                      상세 팝업 / AI 요약
-                    </button>
-                  </>
-                ) : (
-                  <p className="text-on-surface-variant">좌측에서 부품을 선택하세요.</p>
-                )}
-              </div>
-            </aside>
+                    </aside>
+                    {current.notes?.trim() ? (
+                      <section>
+                        <h3 className="mb-2 text-xs font-bold uppercase tracking-wide text-outline">
+                          비고
+                        </h3>
+                        <p className="whitespace-pre-wrap text-on-surface-variant">{current.notes}</p>
+                      </section>
+                    ) : null}
+                    <StatusLine status={current.status} />
+                  </div>
+                </>
+              ) : (
+                <p className="p-8 text-on-surface-variant">선택된 점검 항목이 없습니다.</p>
+              )}
+            </article>
           </div>
         )}
       </div>
 
       <DetailModal
-        open={detailOpen && !!selected}
+        open={detailOpen && !!current}
         onClose={() => setDetailOpen(false)}
-        title={selected?.name ?? ""}
-        aiSourceText={selected ? inspectionToPrompt(selected) : ""}
+        title={current?.name ?? ""}
+        aiSourceText={current ? inspectionToPrompt(current) : ""}
       >
-        {selected ? (
+        {current ? (
           <div className="space-y-2 text-on-surface">
-            <Field label="점검 ID" value={selected.checkId ?? selected.id} />
-            <Field label="품번" value={selected.partNumber} />
-            <Field label="사내 표준" value={selected.internalStandard} />
-            <Field label="시험·검사 방법" value={selected.method} />
-            <Field label="개정일" value={selected.revisionDate} />
-            <Field label="SOC 정밀도" value={selected.socPrecision} />
-            <Field label="절연 저항" value={selected.insulationResistance} />
-            <Field label="비고" value={selected.notes} />
+            <Field label="점검 ID" value={current.checkId ?? current.id} />
+            <Field label="품번" value={current.partNumber} />
+            <Field label="사내 표준" value={current.internalStandard} />
+            <Field label="시험·검사 방법" value={current.method} />
+            <Field label="개정일" value={current.revisionDate} />
+            <Field label="SOC 정밀도" value={current.socPrecision} />
+            <Field label="절연 저항" value={current.insulationResistance} />
+            <Field label="비고" value={current.notes} />
           </div>
         ) : null}
       </DetailModal>
@@ -231,25 +342,7 @@ function Field({ label, value }: { label: string; value?: string }) {
   );
 }
 
-function StatusIcon({
-  status,
-  active,
-}: {
-  status?: string;
-  active: boolean;
-}) {
-  const ok = status !== "fail" && status !== "warn";
-  return (
-    <span
-      className={`material-symbols-outlined ${active ? "text-primary" : "text-on-surface-variant"}`}
-      style={ok ? { fontVariationSettings: "'FILL' 1" } : undefined}
-    >
-      {ok ? "check_circle" : "error"}
-    </span>
-  );
-}
-
-function StatusRow({ status }: { status?: string }) {
+function StatusLine({ status }: { status?: string }) {
   const color =
     status === "fail"
       ? "bg-error"
@@ -257,9 +350,9 @@ function StatusRow({ status }: { status?: string }) {
         ? "bg-amber-500"
         : "bg-emerald-500";
   return (
-    <span className="mt-3 flex items-center gap-2 text-xs text-on-surface-variant">
+    <p className="flex items-center gap-2 text-xs text-on-surface-variant">
       <span className={`h-2 w-2 rounded-full ${color}`} />
-      {status ?? "미정"}
-    </span>
+      상태: {status ?? "미정"}
+    </p>
   );
 }

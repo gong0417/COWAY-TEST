@@ -1,25 +1,57 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { DetailModal } from "@/components/DetailModal";
 import { SearchResultsPanel } from "@/components/SearchResultsPanel";
 import { useReliabilityDataContext } from "@/context/ReliabilityDataContext";
-import { downloadStandardPdf, printStandardView } from "@/lib/standardExport";
+import { useSearchQuery } from "@/context/SearchContext";
+import { useUnifiedFuseSearch } from "@/hooks/useUnifiedFuseSearch";
+import { downloadStandardPdf, printDetailView } from "@/lib/standardExport";
 import type { ReliabilityStandard } from "@/types/models";
 
 export function ReliabilityPage() {
-  const { reliabilityStandards, loading, error } = useReliabilityDataContext();
+  const { query } = useSearchQuery();
+  const {
+    reliabilityStandards,
+    inspectionItems,
+    failureCases,
+    loading,
+    error,
+  } = useReliabilityDataContext();
+  const searchHits = useUnifiedFuseSearch(
+    query,
+    inspectionItems,
+    failureCases,
+    reliabilityStandards,
+  );
+  const filteredStandards = useMemo(() => {
+    if (!query.trim()) return reliabilityStandards;
+    const ids = new Set(
+      searchHits.filter((h) => h.category === "standard").map((h) => h.id),
+    );
+    return reliabilityStandards.filter((s) => ids.has(s.id));
+  }, [reliabilityStandards, query, searchHits]);
+
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [aiOpen, setAiOpen] = useState(false);
 
+  useEffect(() => {
+    if (
+      selectedId &&
+      !filteredStandards.some((s) => s.id === selectedId)
+    ) {
+      setSelectedId(null);
+    }
+  }, [filteredStandards, selectedId]);
+
   const current = useMemo(() => {
-    const list = reliabilityStandards;
+    const list = filteredStandards;
     if (!list.length) return null;
     if (selectedId) {
       const found = list.find((s) => s.id === selectedId);
       if (found) return found;
     }
     return list[0];
-  }, [reliabilityStandards, selectedId]);
+  }, [filteredStandards, selectedId]);
 
   return (
     <MainLayout>
@@ -28,13 +60,43 @@ export function ReliabilityPage() {
         <p className="mb-4 text-sm text-error">데이터: {error}</p>
       ) : null}
       <div className="mx-auto max-w-7xl">
-        <div className="mb-8">
-          <h1 className="mb-2 text-2xl font-bold tracking-tight text-primary">
-            부품 신뢰성 시험 표준
-          </h1>
-          <p className="text-sm text-on-surface-variant">
-            부품별 국제 표준(ISO/IEC) 및 내부 신뢰성 검증 프로세스 가이드라인
-          </p>
+        <div className="mb-8 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <h1 className="mb-2 text-2xl font-bold tracking-tight text-primary">
+              부품 신뢰성 시험 표준
+            </h1>
+            <p className="text-sm text-on-surface-variant">
+              부품별 국제 표준(ISO/IEC) 및 내부 신뢰성 검증 프로세스 가이드라인
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-4">
+            <div className="flex items-center gap-4 rounded-xl border border-slate-100 bg-surface-container-lowest px-6 py-4 shadow-sm">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary-fixed text-on-secondary-fixed">
+                <span className="material-symbols-outlined">science</span>
+              </div>
+              <div>
+                <div className="text-[10px] font-bold uppercase tracking-wider text-outline">
+                  등록 표준
+                </div>
+                <div className="text-xl font-bold text-on-surface">
+                  {loading ? "…" : reliabilityStandards.length}
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-4 rounded-xl border border-slate-100 bg-surface-container-lowest px-6 py-4 shadow-sm">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary-container text-secondary">
+                <span className="material-symbols-outlined">analytics</span>
+              </div>
+              <div>
+                <div className="text-[10px] font-bold uppercase tracking-wider text-outline">
+                  표시 중
+                </div>
+                <div className="text-xl font-bold text-on-surface">
+                  {loading ? "…" : filteredStandards.length}
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         {loading ? (
@@ -45,33 +107,11 @@ export function ReliabilityPage() {
               data-print-hide="true"
               className="col-span-12 flex flex-col gap-6 lg:col-span-5"
             >
-              <div className="grid grid-cols-2 gap-4">
-                <div className="rounded-xl border border-slate-100 bg-surface-container-lowest p-5 shadow-sm">
-                  <div className="mb-2 text-xs font-bold uppercase text-outline-variant">
-                    총 보유 표준
-                  </div>
-                  <div className="text-3xl font-bold text-primary">
-                    {reliabilityStandards.length}
-                    <span className="ml-1 text-sm font-medium">건</span>
-                  </div>
-                </div>
-                <div className="rounded-xl border border-slate-100 bg-surface-container-lowest p-5 shadow-sm">
-                  <div className="mb-2 text-xs font-bold uppercase text-outline-variant">
-                    선택 문서
-                  </div>
-                  <div className="text-3xl font-bold text-primary">
-                    {current ? 1 : 0}
-                    <span className="ml-1 text-sm font-medium">건</span>
-                  </div>
-                </div>
-              </div>
               <div className="flex max-h-[calc(100vh-380px)] flex-col overflow-hidden rounded-xl border border-slate-100 bg-surface-container-lowest shadow-sm">
                 <div className="flex items-center justify-between border-b border-slate-50 p-4">
                   <span className="text-sm font-bold text-on-surface">
                     문서 목록{" "}
-                    <span className="text-surface-tint">
-                      {reliabilityStandards.length}
-                    </span>
+                    <span className="text-surface-tint">{filteredStandards.length}</span>
                     건
                   </span>
                   <div className="flex gap-2">
@@ -93,8 +133,8 @@ export function ReliabilityPage() {
                     </button>
                   </div>
                 </div>
-                <div className="flex-1 overflow-y-auto">
-                  {reliabilityStandards.map((doc) => (
+                <div className="flex-1 divide-y divide-slate-100 overflow-y-auto">
+                  {filteredStandards.map((doc) => (
                     <button
                       key={doc.id}
                       type="button"
@@ -103,7 +143,7 @@ export function ReliabilityPage() {
                         "w-full cursor-pointer border-l-4 p-4 text-left transition-all",
                         current?.id === doc.id
                           ? "border-primary bg-primary-fixed/20"
-                          : "border-transparent hover:bg-surface-container-low/80",
+                          : "border-transparent bg-white hover:bg-surface-container-low/80",
                       ].join(" ")}
                     >
                       <div className="mb-1 flex items-start justify-between gap-2">
@@ -175,7 +215,7 @@ export function ReliabilityPage() {
                       </button>
                       <button
                         type="button"
-                        onClick={() => printStandardView()}
+                        onClick={() => printDetailView()}
                         className="inline-flex items-center gap-2 rounded-lg border border-outline-variant/40 bg-surface-container-low px-4 py-2 text-sm font-bold text-on-surface hover:bg-surface-container-high"
                       >
                         <span className="material-symbols-outlined text-lg">print</span>
@@ -189,7 +229,7 @@ export function ReliabilityPage() {
                         <span className="material-symbols-outlined text-lg text-on-primary">
                           auto_awesome
                         </span>
-                        AI 요약
+                        AI 요약 / 상세 팝업
                       </button>
                     </div>
                   </header>

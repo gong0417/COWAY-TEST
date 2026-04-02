@@ -11,6 +11,10 @@ import {
   mergeInspectionItems,
 } from "../src/stateStore.js";
 import { loadCollectionsFromPool } from "../db/pgCollections.js";
+import {
+  mergedFailureCasesForApi,
+  mergedReliabilityStandardsForApi,
+} from "../src/collectionMerge.js";
 
 const ALLOWED_CSV = new Set([
   "ssm.csv",
@@ -61,12 +65,11 @@ export function registerCsvRoutes(app, { dataDir, uploadsDir, upload, pool }) {
       }
     }
     try {
-      const { failureCases, reliabilityStandards, inspectionItems } =
-        parseAllFromDisk(dataDir);
+      const { inspectionItems } = parseAllFromDisk(dataDir);
       const overlay = loadInspectionOverlay(dataDir);
       res.json({
-        failureCases,
-        reliabilityStandards,
+        failureCases: mergedFailureCasesForApi(dataDir),
+        reliabilityStandards: mergedReliabilityStandardsForApi(dataDir),
         inspectionItems: mergeInspectionItems(inspectionItems, overlay),
       });
     } catch (e) {
@@ -86,8 +89,7 @@ export function registerCsvRoutes(app, { dataDir, uploadsDir, upload, pool }) {
       }
     }
     try {
-      const { failureCases } = parseAllFromDisk(dataDir);
-      res.json(failureCases);
+      res.json(mergedFailureCasesForApi(dataDir));
     } catch (e) {
       console.error(e);
       next(e);
@@ -105,8 +107,7 @@ export function registerCsvRoutes(app, { dataDir, uploadsDir, upload, pool }) {
       }
     }
     try {
-      const { reliabilityStandards } = parseAllFromDisk(dataDir);
-      res.json(reliabilityStandards);
+      res.json(mergedReliabilityStandardsForApi(dataDir));
     } catch (e) {
       console.error(e);
       next(e);
@@ -278,12 +279,18 @@ export function registerCsvRoutes(app, { dataDir, uploadsDir, upload, pool }) {
           return res.status(400).json({ error: "No files" });
         }
         const list = loadFileUploads(dataDir);
+        const scopeRaw = req.body?.scope;
+        const scope =
+          typeof scopeRaw === "string" && scopeRaw.trim()
+            ? scopeRaw.trim()
+            : "inspection";
         for (const f of files) {
           list.push({
             id: randomUUID(),
             fileName: f.originalname,
             url: `/api/files/${f.filename}`,
             createdAt: Date.now(),
+            scope,
           });
         }
         saveFileUploads(dataDir, list);

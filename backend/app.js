@@ -48,7 +48,7 @@ export function createApp(opts = {}) {
   registerCsvRoutes(app, { dataDir, uploadsDir, upload, pool });
   ensureDataFiles(dataDir);
 
-  app.use("/api", createTableRouter(pool));
+  app.use("/api", createTableRouter(pool, { dataDir }));
 
   app.use((err, _req, res, _next) => {
     console.error("[backend]", err);

@@ -1,4 +1,15 @@
 import { Router } from "express";
+import {
+  mergeReliabilityPgRows,
+  mergeSsmPgRows,
+} from "../src/collectionMerge.js";
+import { parseAllFromDisk } from "../src/csvParse.js";
+import {
+  loadReliabilityStandardsOverlay,
+  loadSsmOverlay,
+  saveReliabilityStandardsOverlay,
+  saveSsmOverlay,
+} from "../src/stateStore.js";
 
 /**
  * Whitelisted tables only (matches db/schema.sql). Prevents arbitrary SQL.
@@ -69,10 +80,42 @@ function normalizeValue(col, value) {
   return value;
 }
 
+function requireDataDir(dataDir, res) {
+  if (!dataDir || typeof dataDir !== "string") {
+    res.status(500).json({ error: "Server dataDir is not configured" });
+    return false;
+  }
+  return true;
+}
+
+function deleteSsmFileBacked(dataDir, id) {
+  const overlay = loadSsmOverlay(dataDir);
+  const { failureCases } = parseAllFromDisk(dataDir);
+  const inCsv = failureCases.some((c) => c.id === id);
+  if (inCsv && !overlay.deletedCsvIds.includes(id)) {
+    overlay.deletedCsvIds.push(id);
+  }
+  delete overlay.byId[id];
+  saveSsmOverlay(dataDir, overlay);
+}
+
+function deleteReliabilityFileBacked(dataDir, id) {
+  const overlay = loadReliabilityStandardsOverlay(dataDir);
+  const { reliabilityStandards } = parseAllFromDisk(dataDir);
+  const inCsv = reliabilityStandards.some((s) => s.id === id);
+  if (inCsv && !overlay.deletedCsvIds.includes(id)) {
+    overlay.deletedCsvIds.push(id);
+  }
+  delete overlay.byId[id];
+  saveReliabilityStandardsOverlay(dataDir, overlay);
+}
+
 /**
  * @param {import('pg').Pool | null} pool
+ * @param {{ dataDir?: string }} [opts]
  */
-export function createTableRouter(pool) {
+export function createTableRouter(pool, opts = {}) {
+  const dataDir = opts.dataDir;
   const router = Router();
 
   /** Discovery: all whitelisted tables and their GET URLs (mounted under `/api`). */
@@ -94,6 +137,22 @@ export function createTableRouter(pool) {
       return res.status(404).json({ error: "Unknown table" });
     }
     if (!pool) {
+      if (table === "ssm_cases") {
+        if (!requireDataDir(dataDir, res)) return;
+        try {
+          return res.json(mergeSsmPgRows(dataDir));
+        } catch (e) {
+          return next(e);
+        }
+      }
+      if (table === "reliability_standards") {
+        if (!requireDataDir(dataDir, res)) return;
+        try {
+          return res.json(mergeReliabilityPgRows(dataDir));
+        } catch (e) {
+          return next(e);
+        }
+      }
       return res.status(503).json({ error: "PostgreSQL is not configured" });
     }
     try {
@@ -112,10 +171,32 @@ export function createTableRouter(pool) {
     if (!meta) {
       return res.status(404).json({ error: "Unknown table" });
     }
+    const id = req.params.id;
     if (!pool) {
+      if (table === "ssm_cases") {
+        if (!requireDataDir(dataDir, res)) return;
+        try {
+          const rows = mergeSsmPgRows(dataDir);
+          const row = rows.find((r) => String(r.ssm_id) === id);
+          if (!row) return res.status(404).json({ error: "Not found" });
+          return res.json(row);
+        } catch (e) {
+          return next(e);
+        }
+      }
+      if (table === "reliability_standards") {
+        if (!requireDataDir(dataDir, res)) return;
+        try {
+          const rows = mergeReliabilityPgRows(dataDir);
+          const row = rows.find((r) => String(r.standard_id) === id);
+          if (!row) return res.status(404).json({ error: "Not found" });
+          return res.json(row);
+        } catch (e) {
+          return next(e);
+        }
+      }
       return res.status(503).json({ error: "PostgreSQL is not configured" });
     }
-    const id = req.params.id;
     try {
       const { rows } = await pool.query(
         `SELECT * FROM ${table} WHERE ${meta.pk} = $1`,
@@ -136,12 +217,59 @@ export function createTableRouter(pool) {
     if (!meta) {
       return res.status(404).json({ error: "Unknown table" });
     }
-    if (!pool) {
-      return res.status(503).json({ error: "PostgreSQL is not configured" });
-    }
     const body = req.body;
     if (!body || typeof body !== "object") {
       return res.status(400).json({ error: "JSON body required" });
+    }
+    if (!pool) {
+      if (table !== "ssm_cases" && table !== "reliability_standards") {
+        return res.status(503).json({ error: "PostgreSQL is not configured" });
+      }
+      if (!requireDataDir(dataDir, res)) return;
+      try {
+        validateBodyColumns(table, body);
+        const pkVal = body[meta.pk];
+        if (pkVal == null || String(pkVal).trim() === "") {
+          return res.status(400).json({ error: `${meta.pk} is required` });
+        }
+        const id = String(pkVal).trim();
+        const overlay =
+          table === "ssm_cases"
+            ? loadSsmOverlay(dataDir)
+            : loadReliabilityStandardsOverlay(dataDir);
+        const rowsMerged =
+          table === "ssm_cases"
+            ? mergeSsmPgRows(dataDir)
+            : mergeReliabilityPgRows(dataDir);
+        const existing = rowsMerged.find((r) => String(r[meta.pk]) === id);
+        if (existing && !overlay.byId[id]) {
+          return res.status(409).json({ error: "Duplicate primary key" });
+        }
+        const mergedRow = {};
+        for (const c of meta.columns) {
+          mergedRow[c] =
+            body[c] !== undefined
+              ? normalizeValue(c, body[c])
+              : existing?.[c] ?? null;
+        }
+        mergedRow[meta.pk] = id;
+        overlay.byId[id] = { ...overlay.byId[id], ...mergedRow };
+        if (table === "ssm_cases") {
+          saveSsmOverlay(dataDir, overlay);
+          const rows = mergeSsmPgRows(dataDir);
+          const row = rows.find((r) => String(r[meta.pk]) === id);
+          return res.status(201).json(row);
+        }
+        saveReliabilityStandardsOverlay(dataDir, overlay);
+        const rows = mergeReliabilityPgRows(dataDir);
+        const row = rows.find((r) => String(r[meta.pk]) === id);
+        return res.status(201).json(row);
+      } catch (e) {
+        if (e && e.status === 400) {
+          return res.status(400).json({ error: e.message });
+        }
+        return next(e);
+      }
     }
     try {
       validateBodyColumns(table, body);
@@ -171,10 +299,36 @@ export function createTableRouter(pool) {
     if (!meta) {
       return res.status(404).json({ error: "Unknown table" });
     }
+    const id = req.params.id;
     if (!pool) {
+      if (table === "ssm_cases") {
+        if (!requireDataDir(dataDir, res)) return;
+        try {
+          const rows = mergeSsmPgRows(dataDir);
+          if (!rows.some((r) => String(r[meta.pk]) === id)) {
+            return res.status(404).json({ error: "Not found" });
+          }
+          deleteSsmFileBacked(dataDir, id);
+          return res.status(204).end();
+        } catch (e) {
+          return next(e);
+        }
+      }
+      if (table === "reliability_standards") {
+        if (!requireDataDir(dataDir, res)) return;
+        try {
+          const rows = mergeReliabilityPgRows(dataDir);
+          if (!rows.some((r) => String(r[meta.pk]) === id)) {
+            return res.status(404).json({ error: "Not found" });
+          }
+          deleteReliabilityFileBacked(dataDir, id);
+          return res.status(204).end();
+        } catch (e) {
+          return next(e);
+        }
+      }
       return res.status(503).json({ error: "PostgreSQL is not configured" });
     }
-    const id = req.params.id;
     try {
       const r = await pool.query(
         `DELETE FROM ${table} WHERE ${meta.pk} = $1`,

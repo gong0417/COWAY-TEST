@@ -1,4 +1,5 @@
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { AuthProvider } from "@/context/AuthContext";
 import { ReliabilityDataProvider } from "@/context/ReliabilityDataContext";
 import { SearchProvider } from "@/context/SearchContext";
 import { AdminPage } from "@/pages/AdminPage";
@@ -10,6 +11,7 @@ import { ReliabilityPage } from "@/pages/ReliabilityPage";
 export default function App() {
   return (
     <BrowserRouter>
+      <AuthProvider>
       <ReliabilityDataProvider>
         <SearchProvider>
           <Routes>
@@ -22,6 +24,7 @@ export default function App() {
           </Routes>
         </SearchProvider>
       </ReliabilityDataProvider>
+      </AuthProvider>
     </BrowserRouter>
   );
 }
