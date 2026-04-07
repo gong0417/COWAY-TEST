@@ -1,10 +1,10 @@
 # GitHub 원격(origin) 연결 — 프로젝트 루트 기준
-# 사용: PowerShell에서  reliability-system 폴더로 이동 후
+# 사용: PowerShell에서 COWAY-TEST(프로젝트 루트) 폴더로 이동 후
 #   .\scripts\git-setup-remote.ps1
 # (Git for Windows 설치 필요: https://git-scm.com/download/win )
 
 $ErrorActionPreference = "Stop"
-$RemoteUrl = "https://github.com/gong0417/RV-SYSTEM.git"
+$RemoteUrl = "https://github.com/gong0417/COWAY-TEST.git"
 $Root = Split-Path -Parent $PSScriptRoot
 Set-Location $Root
 
