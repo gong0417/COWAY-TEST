@@ -1,4 +1,9 @@
-# RV-SYSTEM — Synology NAS / Docker (프로덕션 지향)
+# COWAY-TEST — Synology NAS / Docker (프로덕션 지향)
+#
+# 인증: 기본은 JWT+로컬 PG(docker-compose). Supabase Auth를 쓰려면 backend 환경에 추가:
+#   AUTH_PROVIDER=supabase
+#   SUPABASE_JWT_SECRET=<Supabase Dashboard → API → JWT Secret>
+# 프론트 빌드 시 VITE_USE_SUPABASE_AUTH / VITE_SUPABASE_* 는 docker/frontend Dockerfile args로 전달.
 #
 # 사용법:
 #   cp docker-compose.env.example .env
@@ -66,6 +71,10 @@ services:
       CORS_ORIGIN: ${CORS_ORIGIN:-}
       JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env (min 16 chars)}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
+      # Supabase Auth 사용 시: AUTH_PROVIDER=supabase, SUPABASE_JWT_SECRET 설정 후 JWT_SECRET는 더미로도 가능(미사용)
+      AUTH_PROVIDER: ${AUTH_PROVIDER:-jwt}
+      SUPABASE_JWT_SECRET: ${SUPABASE_JWT_SECRET:-}
+      SUPABASE_ADMIN_EMAILS: ${SUPABASE_ADMIN_EMAILS:-}
     volumes:
       - ./data:/data
     expose:
@@ -103,6 +112,9 @@ services:
       args:
         # 빌드 시 비우면 런타임에 동일 출처(/api) 사용 — Nginx 프록시와 일치
         VITE_API_BASE_URL: ${VITE_API_BASE_URL:-}
+        VITE_USE_SUPABASE_AUTH: ${VITE_USE_SUPABASE_AUTH:-}
+        VITE_SUPABASE_URL: ${VITE_SUPABASE_URL:-}
+        VITE_SUPABASE_ANON_KEY: ${VITE_SUPABASE_ANON_KEY:-}
     restart: unless-stopped
     ports:
       - "${FRONTEND_PORT:-8080}:8080"

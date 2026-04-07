@@ -3,7 +3,8 @@ import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 
 export function LoginPage() {
-  const { login, isAuthenticated, bootstrapping, authOffline } = useAuth();
+  const { login, isAuthenticated, bootstrapping, authOffline, supabaseAuth } =
+    useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const from =
@@ -23,9 +24,9 @@ export function LoginPage() {
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
-    const u = username.trim().toLowerCase();
+    const u = supabaseAuth ? username.trim() : username.trim().toLowerCase();
     if (!u) {
-      setError("사용자 이름을 입력하세요.");
+      setError(supabaseAuth ? "이메일을 입력하세요." : "사용자 이름을 입력하세요.");
       return;
     }
     if (!password) {
@@ -58,7 +59,7 @@ export function LoginPage() {
       <div className="relative w-full max-w-[400px]">
         <div className="mb-8 text-center">
           <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#00213f]/60">
-            RV-SYSTEM
+            COWAY-TEST
           </p>
           <h1 className="mt-2 text-2xl font-bold tracking-tight text-[#0f172a]">
             로그인
@@ -84,6 +85,18 @@ export function LoginPage() {
               로 두세요.
             </div>
           ) : null}
+          {supabaseAuth ? (
+            <div
+              className="mb-5 rounded-xl border border-sky-200 bg-sky-50 px-3.5 py-2.5 text-xs text-sky-950"
+              role="status"
+            >
+              <strong className="font-semibold">Supabase Auth</strong> — 이메일·비밀번호로
+              로그인합니다. 백엔드에{" "}
+              <code className="rounded bg-sky-100/80 px-1">AUTH_PROVIDER=supabase</code>와{" "}
+              <code className="rounded bg-sky-100/80 px-1">SUPABASE_JWT_SECRET</code>이
+              필요합니다.
+            </div>
+          ) : null}
           <form
             onSubmit={(e) => void onSubmit(e)}
             className="space-y-5"
@@ -95,11 +108,11 @@ export function LoginPage() {
                 htmlFor="login-username"
                 className="text-xs font-semibold text-slate-600"
               >
-                사용자 이름
+                {supabaseAuth ? "이메일" : "사용자 이름"}
               </label>
               <input
                 id="login-username"
-                type="text"
+                type={supabaseAuth ? "email" : "text"}
                 name="username"
                 autoComplete="username"
                 autoCapitalize="none"
@@ -109,7 +122,7 @@ export function LoginPage() {
                 disabled={loading}
                 aria-invalid={Boolean(error)}
                 className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3.5 py-2.5 text-sm text-slate-900 outline-none transition-[border-color,box-shadow,background-color] placeholder:text-slate-400 focus:border-[#00213f]/30 focus:bg-white focus:ring-2 focus:ring-[#00213f]/15 disabled:cursor-not-allowed disabled:opacity-60"
-                placeholder="username"
+                placeholder={supabaseAuth ? "you@example.com" : "username"}
               />
             </div>
 

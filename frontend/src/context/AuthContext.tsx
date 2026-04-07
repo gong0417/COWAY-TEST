@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from "react";
 import { apiUrl, fetchApiJson } from "@/lib/api";
+import { isSupabaseAuthFrontend } from "@/lib/authProviderFrontend";
 import {
   clearOfflineSession,
   isAuthOfflineMode,
@@ -19,9 +20,10 @@ import {
   getAuthToken,
   setAuthToken,
 } from "@/lib/authToken";
+import { getSupabaseBrowserClient } from "@/lib/supabaseClient";
 
 export type AuthUser = {
-  id: number;
+  id: string;
   username: string;
   role: "admin" | "user";
 };
@@ -33,6 +35,8 @@ type AuthContextValue = {
   bootstrapping: boolean;
   /** 서버 없이 로컬 세션만 쓰는지 (VITE_AUTH_OFFLINE) */
   authOffline: boolean;
+  /** Supabase Auth 사용 여부 (VITE_USE_SUPABASE_AUTH) */
+  supabaseAuth: boolean;
   login: (username: string, password: string) => Promise<void>;
   register: (username: string, password: string) => Promise<void>;
   logout: () => void;
@@ -45,24 +49,29 @@ type MeResponse = { user: AuthUser };
 const OFFLINE_REG_KEY = "rs_offline_reg_count";
 
 function offlineSessionToUser(s: { username: string; role: "admin" | "user" }): AuthUser {
-  return { id: 0, username: s.username, role: s.role };
+  return { id: "0", username: s.username, role: s.role };
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const offline = isAuthOfflineMode();
+  const supabaseAuth = !offline && isSupabaseAuthFrontend();
 
-  const [token, setTokenState] = useState<string | null>(() =>
-    offline ? null : getAuthToken(),
-  );
+  const [token, setTokenState] = useState<string | null>(() => {
+    if (offline) return null;
+    if (supabaseAuth) return null;
+    return getAuthToken();
+  });
   const [user, setUser] = useState<AuthUser | null>(() => {
     if (!offline) return null;
     const s = readOfflineSession();
     return s ? offlineSessionToUser(s) : null;
   });
 
-  const [bootstrapping, setBootstrapping] = useState(
-    () => !offline && Boolean(getAuthToken()),
-  );
+  const [bootstrapping, setBootstrapping] = useState(() => {
+    if (offline) return false;
+    if (supabaseAuth) return true;
+    return Boolean(getAuthToken());
+  });
 
   useEffect(() => {
     if (offline) {
@@ -71,6 +80,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setBootstrapping(false);
     }
   }, [offline]);
+
+  useEffect(() => {
+    if (offline || !supabaseAuth) return;
+    const sb = getSupabaseBrowserClient();
+    if (!sb) {
+      setBootstrapping(false);
+      return;
+    }
+    const {
+      data: { subscription },
+    } = sb.auth.onAuthStateChange((_event, session) => {
+      const t = session?.access_token ?? null;
+      if (t) setAuthToken(t);
+      else clearAuthToken();
+      setTokenState(t);
+      if (!t) setUser(null);
+    });
+    return () => subscription.unsubscribe();
+  }, [offline, supabaseAuth]);
 
   const loadMe = useCallback(async (t: string) => {
     const data = await fetchApiJson<MeResponse>("/api/auth/me", {
@@ -97,6 +125,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           clearAuthToken();
           setTokenState(null);
           setUser(null);
+          if (supabaseAuth) {
+            const sb = getSupabaseBrowserClient();
+            await sb?.auth.signOut();
+          }
         }
       } finally {
         if (!cancelled) setBootstrapping(false);
@@ -105,7 +137,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, [offline, token, loadMe]);
+  }, [offline, token, loadMe, supabaseAuth]);
 
   useEffect(() => {
     function onUnauthorized() {
@@ -117,74 +149,125 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => window.removeEventListener("rs-unauthorized", onUnauthorized);
   }, []);
 
-  const login = useCallback(async (username: string, password: string) => {
-    if (offline) {
-      const u = username.trim().toLowerCase();
-      if (!u) throw new Error("사용자 이름을 입력하세요.");
-      if (!password) throw new Error("비밀번호를 입력하세요.");
-      const session = { username: u, role: "admin" as const };
-      writeOfflineSession(session);
-      setUser(offlineSessionToUser(session));
-      return;
-    }
-    const res = await fetch(apiUrl("/api/auth/login"), {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Accept: "application/json" },
-      body: JSON.stringify({ username: username.trim(), password }),
-    });
-    const text = await res.text();
-    if (!res.ok) {
-      let msg = text;
-      try {
-        const j = JSON.parse(text) as { error?: string };
-        if (j.error) msg = j.error;
-      } catch {
-        /* keep text */
+  const login = useCallback(
+    async (username: string, password: string) => {
+      if (offline) {
+        const u = username.trim().toLowerCase();
+        if (!u) throw new Error("사용자 이름을 입력하세요.");
+        if (!password) throw new Error("비밀번호를 입력하세요.");
+        const session = { username: u, role: "admin" as const };
+        writeOfflineSession(session);
+        setUser(offlineSessionToUser(session));
+        return;
       }
-      throw new Error(msg || `로그인 실패 (${res.status})`);
-    }
-    const body = JSON.parse(text) as { token: string; user: AuthUser };
-    setAuthToken(body.token);
-    setTokenState(body.token);
-    setUser(body.user);
-  }, [offline]);
+      if (supabaseAuth) {
+        const sb = getSupabaseBrowserClient();
+        if (!sb) {
+          throw new Error(
+            "Supabase 설정이 없습니다. .env에 VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY를 확인하세요.",
+          );
+        }
+        const email = username.trim();
+        if (!email) throw new Error("이메일을 입력하세요.");
+        const { data, error } = await sb.auth.signInWithPassword({
+          email,
+          password,
+        });
+        if (error) throw new Error(error.message);
+        const t = data.session?.access_token;
+        if (!t) throw new Error("세션을 받지 못했습니다. 이메일 인증을 완료했는지 확인하세요.");
+        setAuthToken(t);
+        setTokenState(t);
+        return;
+      }
+      const res = await fetch(apiUrl("/api/auth/login"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({ username: username.trim(), password }),
+      });
+      const text = await res.text();
+      if (!res.ok) {
+        let msg = text;
+        try {
+          const j = JSON.parse(text) as { error?: string };
+          if (j.error) msg = j.error;
+        } catch {
+          /* keep text */
+        }
+        throw new Error(msg || `로그인 실패 (${res.status})`);
+      }
+      const body = JSON.parse(text) as { token: string; user: AuthUser };
+      setAuthToken(body.token);
+      setTokenState(body.token);
+      setUser(body.user);
+    },
+    [offline, supabaseAuth],
+  );
 
-  const register = useCallback(async (username: string, password: string) => {
-    if (offline) {
-      const u = username.trim().toLowerCase();
-      if (!u) throw new Error("사용자 이름을 입력하세요.");
-      if (password.length < 8) {
-        throw new Error("비밀번호는 8자 이상이어야 합니다.");
+  const register = useCallback(
+    async (username: string, password: string) => {
+      if (offline) {
+        const u = username.trim().toLowerCase();
+        if (!u) throw new Error("사용자 이름을 입력하세요.");
+        if (password.length < 8) {
+          throw new Error("비밀번호는 8자 이상이어야 합니다.");
+        }
+        const n = Number(localStorage.getItem(OFFLINE_REG_KEY) || "0");
+        const role = n === 0 ? ("admin" as const) : ("user" as const);
+        localStorage.setItem(OFFLINE_REG_KEY, String(n + 1));
+        const session = { username: u, role };
+        writeOfflineSession(session);
+        setUser(offlineSessionToUser(session));
+        return;
       }
-      const n = Number(localStorage.getItem(OFFLINE_REG_KEY) || "0");
-      const role = n === 0 ? ("admin" as const) : ("user" as const);
-      localStorage.setItem(OFFLINE_REG_KEY, String(n + 1));
-      const session = { username: u, role };
-      writeOfflineSession(session);
-      setUser(offlineSessionToUser(session));
-      return;
-    }
-    const res = await fetch(apiUrl("/api/auth/register"), {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Accept: "application/json" },
-      body: JSON.stringify({ username: username.trim(), password }),
-    });
-    const text = await res.text();
-    if (!res.ok) {
-      let msg = text;
-      try {
-        const j = JSON.parse(text) as { error?: string };
-        if (j.error) msg = j.error;
-      } catch {
-        /* keep text */
+      if (supabaseAuth) {
+        const sb = getSupabaseBrowserClient();
+        if (!sb) {
+          throw new Error(
+            "Supabase 설정이 없습니다. .env에 VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY를 확인하세요.",
+          );
+        }
+        const email = username.trim();
+        if (!email) throw new Error("이메일을 입력하세요.");
+        if (password.length < 6) {
+          throw new Error("비밀번호는 Supabase 정책에 맞는 길이여야 합니다. (보통 6자 이상)");
+        }
+        const { data, error } = await sb.auth.signUp({ email, password });
+        if (error) throw new Error(error.message);
+        const t = data.session?.access_token;
+        if (t) {
+          setAuthToken(t);
+          setTokenState(t);
+        } else {
+          throw new Error(
+            "가입은 완료되었습니다. 이메일 확인 후 로그인하세요. (프로젝트에서 이메일 확인을 끈 경우 자동 로그인됩니다.)",
+          );
+        }
+        return;
       }
-      throw new Error(msg || `가입 실패 (${res.status})`);
-    }
-    const body = JSON.parse(text) as { token: string; user: AuthUser };
-    setAuthToken(body.token);
-    setTokenState(body.token);
-    setUser(body.user);
-  }, [offline]);
+      const res = await fetch(apiUrl("/api/auth/register"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({ username: username.trim(), password }),
+      });
+      const text = await res.text();
+      if (!res.ok) {
+        let msg = text;
+        try {
+          const j = JSON.parse(text) as { error?: string };
+          if (j.error) msg = j.error;
+        } catch {
+          /* keep text */
+        }
+        throw new Error(msg || `가입 실패 (${res.status})`);
+      }
+      const body = JSON.parse(text) as { token: string; user: AuthUser };
+      setAuthToken(body.token);
+      setTokenState(body.token);
+      setUser(body.user);
+    },
+    [offline, supabaseAuth],
+  );
 
   const logout = useCallback(() => {
     if (offline) {
@@ -192,10 +275,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(null);
       return;
     }
+    if (supabaseAuth) {
+      void getSupabaseBrowserClient()?.auth.signOut();
+    }
     clearAuthToken();
     setTokenState(null);
     setUser(null);
-  }, [offline]);
+  }, [offline, supabaseAuth]);
 
   const isAuthenticated = offline
     ? Boolean(user)
@@ -208,11 +294,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isAuthenticated,
       bootstrapping: offline ? false : bootstrapping,
       authOffline: offline,
+      supabaseAuth,
       login,
       register,
       logout,
     }),
-    [user, token, offline, isAuthenticated, bootstrapping, login, register, logout],
+    [
+      user,
+      token,
+      offline,
+      supabaseAuth,
+      isAuthenticated,
+      bootstrapping,
+      login,
+      register,
+      logout,
+    ],
   );
 
   return (

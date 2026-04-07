@@ -15,6 +15,7 @@ import {
   mergedFailureCasesForApi,
   mergedReliabilityStandardsForApi,
 } from "../src/collectionMerge.js";
+import { getAuthProvider } from "../config/authMode.js";
 
 const ALLOWED_CSV = new Set([
   "ssm.csv",
@@ -36,7 +37,12 @@ export function registerCsvRoutes(app, {
   requireAdmin,
 }) {
   app.get("/api/health", (_req, res) => {
-    res.json({ ok: true, dataDir, pg: Boolean(pool) });
+    res.json({
+      ok: true,
+      dataDir,
+      pg: Boolean(pool),
+      authProvider: getAuthProvider(),
+    });
   });
 
   app.get("/api/db/:name", requireAuth, requireAdmin, (req, res, next) => {

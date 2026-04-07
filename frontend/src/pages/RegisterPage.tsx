@@ -3,9 +3,11 @@ import { Link, Navigate, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 
 const USER_RE = /^[a-z0-9_]{3,50}$/;
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export function RegisterPage() {
-  const { register, isAuthenticated, bootstrapping, authOffline } = useAuth();
+  const { register, isAuthenticated, bootstrapping, authOffline, supabaseAuth } =
+    useAuth();
   const navigate = useNavigate();
 
   const [username, setUsername] = useState("");
@@ -21,15 +23,25 @@ export function RegisterPage() {
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
-    const u = username.trim().toLowerCase();
-    if (!USER_RE.test(u)) {
+    const raw = username.trim();
+    const u = supabaseAuth ? raw : raw.toLowerCase();
+    if (supabaseAuth) {
+      if (!EMAIL_RE.test(u)) {
+        setError("올바른 이메일 주소를 입력하세요.");
+        return;
+      }
+    } else if (!USER_RE.test(u)) {
       setError(
         "사용자 이름: 3~50자, 영문 소문자·숫자·밑줄(_)만 사용할 수 있습니다.",
       );
       return;
     }
-    if (password.length < 8) {
+    if (!supabaseAuth && password.length < 8) {
       setError("비밀번호는 8자 이상이어야 합니다.");
+      return;
+    }
+    if (supabaseAuth && password.length < 6) {
+      setError("비밀번호는 6자 이상이어야 합니다. (Supabase 프로젝트 정책에 맞게 조정하세요)");
       return;
     }
     if (password !== password2) {
@@ -57,6 +69,14 @@ export function RegisterPage() {
               오프라인 모드: 브라우저에만 저장되며,{" "}
               <strong className="text-on-surface">첫 가입만 admin</strong>입니다.
             </>
+          ) : supabaseAuth ? (
+            <>
+              Supabase로 가입합니다. 관리자는 Supabase 대시보드에서{" "}
+              <code className="text-on-surface">user_metadata.role</code>을{" "}
+              <strong className="text-on-surface">admin</strong>으로 설정하거나, 서버{" "}
+              <code className="text-on-surface">SUPABASE_ADMIN_EMAILS</code>에 이메일을
+              넣으세요.
+            </>
           ) : (
             <>
               첫 가입자는 자동으로{" "}
@@ -67,9 +87,9 @@ export function RegisterPage() {
 
         <form onSubmit={(e) => void onSubmit(e)} className="space-y-4">
           <label className="block text-xs font-bold text-on-surface-variant">
-            사용자 이름
+            {supabaseAuth ? "이메일" : "사용자 이름"}
             <input
-              type="text"
+              type={supabaseAuth ? "email" : "text"}
               name="username"
               autoComplete="username"
               value={username}

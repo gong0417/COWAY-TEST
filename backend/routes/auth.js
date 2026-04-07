@@ -1,9 +1,16 @@
 import { Router } from "express";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import { getAuthProvider } from "../config/authMode.js";
 import { getJwtSecret, requireAuth } from "../middleware/authMiddleware.js";
 
 const SALT_ROUNDS = 12;
+
+const USE_SUPABASE_BODY = {
+  error:
+    "이 프로젝트는 Supabase Auth를 사용합니다. 앱에서 회원가입·로그인하거나 Supabase 대시보드에서 사용자를 관리하세요.",
+  code: "USE_SUPABASE_AUTH",
+};
 
 function jwtExpiresIn() {
   return process.env.JWT_EXPIRES_IN?.trim() || "7d";
@@ -14,9 +21,13 @@ function jwtExpiresIn() {
  */
 export function createAuthRouter(pool) {
   const router = Router();
+  const supabaseAuth = getAuthProvider() === "supabase";
 
   router.post("/register", async (req, res, next) => {
     try {
+      if (supabaseAuth) {
+        return res.status(400).json(USE_SUPABASE_BODY);
+      }
       if (!pool) {
         return res.status(503).json({ error: "Database not configured" });
       }
@@ -66,7 +77,7 @@ export function createAuthRouter(pool) {
       res.status(201).json({
         token,
         user: {
-          id: row.id,
+          id: String(row.id),
           username: row.username,
           role: row.role,
           created_at: row.created_at,
@@ -85,6 +96,9 @@ export function createAuthRouter(pool) {
 
   router.post("/login", async (req, res, next) => {
     try {
+      if (supabaseAuth) {
+        return res.status(400).json(USE_SUPABASE_BODY);
+      }
       if (!pool) {
         return res.status(503).json({ error: "Database not configured" });
       }
@@ -124,7 +138,7 @@ export function createAuthRouter(pool) {
       res.json({
         token,
         user: {
-          id: row.id,
+          id: String(row.id),
           username: row.username,
           role: row.role,
           created_at: row.created_at,
